@@ -65,11 +65,9 @@ class FinanacialManager:
     def tally_account(self, amounts, memos, colours, dates) -> None:
         """
         Adds either a new year file or a new month sheet to the year
-        Probs should add if bank have been already been added <---- !!
         """
-
+        # gets the last known total
         last_total = self.get_last_total()
-        print(last_total)
 
         # Checks if a year file has been created
         if not os.path.exists(self.output_file):
@@ -86,18 +84,21 @@ class FinanacialManager:
 
             # Adding different bank statement in existing month
             if self.month in sheet_list:
-                df = self.to_dataframe(amounts, memos, last_total, colours, dates)
-                # Adding Data to existing month sheet
-                sheet = workbook[self.month]
-                # Adding to the bottom of the sheet
-                last_row = sheet.max_row
+                if not self.check_existing_bank():
+                    df = self.to_dataframe(amounts, memos, last_total, colours, dates)
+                    # Adding Data to existing month sheet
+                    sheet = workbook[self.month]
+                    # Adding to the bottom of the sheet
+                    last_row = sheet.max_row
 
-                # Getting row of dataframe (overlay at end of the row)
-                with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
-                    df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False)
+                    # Getting row of dataframe (overlay at end of the row)
+                    with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+                        df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False, header=False)
 
-                # Set all to the colour
-                self.set_colour_row(df, int(last_row))
+                    # Set all to the colour
+                    self.set_colour_row(df, int(last_row))
+                else:
+                    print(f'{self.bank} exists already in that year')
 
             # New month in year file
             else:
@@ -110,6 +111,13 @@ class FinanacialManager:
                 self.set_colour_row(df, 0)
         else:
             raise ValueError('No files found')
+
+    def check_existing_bank(self):
+        """
+        Checks if theres already the name of the bank in the month of that year
+        """
+        df = pd.read_excel(self.output_file)
+        return self.bank in df['Bank'].values
 
     def to_dataframe(self, amounts: list[int], memos: list[str],
                   last_total: int, colours: list[int], dates: list[str]) -> pd.DataFrame:
@@ -138,27 +146,32 @@ class FinanacialManager:
 
         # If year exists
         if os.path.exists(self.output_file):
-            statement = load_workbook(filename=self.output_file)
-            sheets = statement.sheetnames
+            workbook = load_workbook(filename=self.output_file)
+            sheets = workbook.sheetnames
 
             if self.month in sheets:  # gets current month
-                workbook = load_workbook(filename=self.output_file)
-                sheet = workbook[self.month]
-                return [row[3].value for row in sheet][-1]
+                data = pd.read_excel(self.output_file, sheet_name=sheets[-1])
 
-            # Check for privous month in file for last cell total
+                workbook.close()
+                return data['Total'].iloc[-1]
+
+            # Gets the last month in that year, returing last total of that month
             data = pd.read_excel(self.output_file,sheet_name=sheets[-1])
-            print(data['Total'].iloc[-1])
+
+            workbook.close()
             return data['Total'].iloc[-1]
 
+        # Gets the last month of the year before
         elif os.path.exists(year_before):
-            statement = load_workbook(filename=year_before)
-            sheets = statement.sheetnames
+            workbook = load_workbook(filename=year_before)
+            sheets = workbook.sheetnames
 
             if sheets:
+                # Gets the last month in the list of sheets
                 data = pd.read_excel(year_before,
                                      sheet_name=sheets[-1])
-                print(data['Total'].iloc[-1])
+
+                workbook.close()
                 return data['Total'].iloc[-1]
             else:
                 raise ValueError('No sheets to access')
@@ -188,3 +201,4 @@ class FinanacialManager:
                 cell.value = None
         # Save the workbook
         workbook.save(self.output_file)
+        workbook.close()
