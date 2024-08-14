@@ -1,8 +1,4 @@
-# Auto_Banking
-- Creating a JSON file e.g.
-  {"Barclay": {
-        "amount_column": "Amount",
-        "memo_column": "Memo",
-        "remove_memo": "<'A memo you want to remove'>"
-    }}
-- Create a statements and finance file 
+# Excel_Spending
+A auto excel tracking spending script, that put all your sending onto a xlsx file. You able to add custom JSON files to add into categories likes "Food", "Travel", then have graphs showing spending throughout the years
+
+### ( This is a continuation of a project that was privated on my repo )
