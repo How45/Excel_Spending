@@ -4,6 +4,7 @@ File to get statements to put them on spreadsheet
 import os
 import json
 import pandas as pd
+from numpy import int64
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 from helper_function import last_year, memo_extraction, rgb_to_rbga
@@ -19,7 +20,7 @@ class FinanacialManager:
         self.output_file = f'finance/{year}.xlsx' # Where records are kept
 
     # Needs to be re-done (normalise so it can gt all data)
-    def clean(self, statement: str) -> tuple[list[int], list[str], list[str], list[str]]:
+    def clean(self, statement: str) -> pd.DataFrame:
         """
         Cleans bank statement
         """
@@ -60,50 +61,51 @@ class FinanacialManager:
                 colours.append(colour)
                 amounts.append(amount[index])
 
-        return amounts, memos, colours, dates
-
-    def tally_account(self, amounts, memos, colours, dates) -> None:
-        """
-        Adds either a new year file or a new month sheet to the year
-        """
         # gets the last known total
         last_total = self.get_last_total()
 
+        return self.to_dataframe(amounts, memos, last_total, colours, dates)
+
+    def tally_account(self, df: pd.DataFrame) -> None:
+        """
+        Adds either a new year file or a new month sheet to the year
+        """
         # Checks if a year file has been created
         if not os.path.exists(self.output_file):
-            df = self.to_dataframe(amounts, memos, last_total, colours, dates)
             df.to_excel(self.output_file, sheet_name=self.month, index=False)
-
             # setting row to start at 0
             self.set_colour_row(df, 0)
 
+        # If year file exists
         elif os.path.exists(self.output_file):
-            # If year file exists
+            # Loads workbook and gets the lists of sheets name
             workbook = load_workbook(filename=self.output_file)
             sheet_list = workbook.sheetnames
 
-            # Adding different bank statement in existing month
+            # Checking if month is in the year workbook
             if self.month in sheet_list:
+
+                # Checks if that bank is already added
                 if not self.check_existing_bank():
-                    df = self.to_dataframe(amounts, memos, last_total, colours, dates)
                     # Adding Data to existing month sheet
                     sheet = workbook[self.month]
                     # Adding to the bottom of the sheet
                     last_row = sheet.max_row
 
-                    # Getting row of dataframe (overlay at end of the row)
+                    # Getting row of dataframe (overlay at end of the row), workbook auto-closes
                     with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
                         df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False, header=False)
 
                     # Set all to the colour
                     self.set_colour_row(df, int(last_row))
                 else:
+                    # Skips the adding of already exiting bank
                     print(f'{self.bank} exists already in that year')
+                    print(f'{self.bank}_{self.month}_{self.year}, can be removed')
 
             # New month in year file
             else:
-                df = self.to_dataframe(amounts, memos, last_total, colours, dates)
-
+                # Workbook auto closes
                 with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a') as writer:
                     df.to_excel(writer, sheet_name=self.month, index=False)
 
@@ -137,7 +139,7 @@ class FinanacialManager:
             df = df._append(row, ignore_index=True)
         return df
 
-    def get_last_total(self) -> pd.DataFrame:
+    def get_last_total(self) -> int64:
         """
         Retrieves last total from file (checks current year or previous year)
         """
@@ -150,31 +152,40 @@ class FinanacialManager:
             sheets = workbook.sheetnames
 
             if self.month in sheets:  # gets current month
-                data = pd.read_excel(self.output_file, sheet_name=sheets[-1])
+                sheet = workbook[self.month]
+                # Gets the last row of the sheet.
+                # max.row-1, as the file leaves a bank row at the end
+                for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
+                                           min_col= 5, max_col= 5, values_only=False):
+                    for cell in row:
+                        workbook.close()
+                        return cell.coordinate
 
-                workbook.close()
-                return data['Total'].iloc[-1]
-
+            # Gets last month avaiable
+            sheet = sheets[-1]
             # Gets the last month in that year, returing last total of that month
-            data = pd.read_excel(self.output_file,sheet_name=sheets[-1])
-
-            workbook.close()
-            return data['Total'].iloc[-1]
+            for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
+                                           min_col= 5, max_col= 5, values_only=False):
+                for cell in row:
+                    workbook.close()
+                    return cell.coordinate
 
         # Gets the last month of the year before
         elif os.path.exists(year_before):
             workbook = load_workbook(filename=year_before)
             sheets = workbook.sheetnames
 
-            if sheets:
-                # Gets the last month in the list of sheets
-                data = pd.read_excel(year_before,
-                                     sheet_name=sheets[-1])
-
-                workbook.close()
-                return data['Total'].iloc[-1]
-            else:
-                raise ValueError('No sheets to access')
+            try:
+                # Gets last month avaiable
+                sheet = sheets[-1]
+                # Gets the last month in that year, returing last total of that month
+                for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
+                                            min_col= 5, max_col= 5, values_only=False):
+                    for cell in row:
+                        workbook.close()
+                        return cell.coordinate
+            except ValueError as val_error:
+                print(val_error)
 
         else: # For very first statement
             print('no privous month or year has been found')

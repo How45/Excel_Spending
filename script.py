@@ -16,8 +16,8 @@ def main():
         bank, month, year = extract_name(file_name.split('.')[0])
 
         statement = ef.FinanacialManager(bank, year, month)
-        amount, memo, colours, dates = statement.clean(file_name)
-        statement.tally_account(amount, memo, colours, dates)
+        data = statement.clean(file_name)
+        statement.tally_account(data)
 
 def clean_through():
     """
@@ -29,6 +29,7 @@ def clean_through():
 
     for year in files:
         statement = ef.FinanacialManager(None, year.split('.')[0], None)
+        # | Work in progress |
 
 if __name__ == "__main__":
     main()
