@@ -31,7 +31,9 @@ class TestExtractionFile(unittest.TestCase):
         for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1, min_col= 5, max_col= 5, values_only=False):
             for cell in row:
                 workbook.close()
-                print(cell.coordinate) # String
+                # Returns the sheet the cell is from, the cell value,
+                # the value in that cell,the whole cell tuple, veriable type
+                print(cell.parent.title, cell.coordinate, cell.value, cell, type(cell)) # String
 
 if __name__ == '__main__':
     unittest.main()

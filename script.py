@@ -9,9 +9,9 @@ def main():
     """
     Main file
     """
-    for file_name in ['statements/Barclay_11_2023.csv',
-                      'statements/Barclay_12_2023.csv',
-                      'statements/TestA_11_2023.csv']:
+    for file_name in ['statements/TestA_11_2022.csv',
+                      'statements/Barclay_11_2023.csv',
+                      'statements/Barclay_12_2023.csv']:
         # file_name = 'statements/TestA_11_2023.csv'
         bank, month, year = extract_name(file_name.split('.')[0])
 

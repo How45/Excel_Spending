@@ -6,9 +6,10 @@ import json
 import pandas as pd
 from numpy import int64
 from openpyxl import load_workbook
+from openpyxl.cell.cell import Cell
 from openpyxl.styles import PatternFill
 from helper_function import last_year, memo_extraction, rgb_to_rbga
-
+from icecream import ic
 class FinanacialManager:
     """
     Deals with cleaning of statements and puts them in sheets
@@ -62,9 +63,9 @@ class FinanacialManager:
                 amounts.append(amount[index])
 
         # gets the last known total
-        last_total = self.get_last_total()
+        last_total_cell = self.get_last_total_cell()
 
-        return self.to_dataframe(amounts, memos, last_total, colours, dates)
+        return self.to_dataframe(amounts, memos, last_total_cell, colours, dates)
 
     def tally_account(self, df: pd.DataFrame) -> None:
         """
@@ -122,24 +123,50 @@ class FinanacialManager:
         return self.bank in df['Bank'].values
 
     def to_dataframe(self, amounts: list[int], memos: list[str],
-                  last_total: int, colours: list[int], dates: list[str]) -> pd.DataFrame:
+                  last_total_cell: tuple[Cell|None, str|None, str|None], colours: list[int], dates: list[str]) -> pd.DataFrame:
         """
         Creates dataframe to a new sheet
         """
-
         df = pd.DataFrame()
+        # If the very first file is created, using default starting value
+        if last_total_cell[1] is None:
+            cell_value: int = last_total_cell[0]
+            cell_coordinate: str = 'E2'
+
+        # If refrencing another sheet or workbook
+        # I don't believe we will need cell_value
+        # Believe is only needed when no workbook has existed
+        else:
+            # cell_value = last_total_cell[0].value
+            cell_coordinate: str = last_total_cell[0].coordinate
+
+        iteration = 0
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
-            last_total += amount
+            if iteration == 0:
+                function_total = self.sum_function_row1(last_total_cell, iteration, cell_value, cell_coordinate)
+
+            elif iteration == 1:
+                # Current row + total from above
+                function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
+
+
+            else:
+                # Increase the cell E(n) to E(n+1)
+                cell_coordinate = f'E{int(cell_coordinate[1:])+1}'
+                # Current row + total from above
+                function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
+
             row = {"Date": date,
                     "Colour": colour,
                     "What?": memo,
                     "Income/Spending": amount,
-                    "Total": last_total,
+                    "Total": function_total,
                     "Bank": self.bank}
             df = df._append(row, ignore_index=True)
+            iteration += 1
         return df
 
-    def get_last_total(self) -> int64:
+    def get_last_total_cell(self) -> tuple[Cell|None, str|None, str|None]:
         """
         Retrieves last total from file (checks current year or previous year)
         """
@@ -155,20 +182,23 @@ class FinanacialManager:
                 sheet = workbook[self.month]
                 # Gets the last row of the sheet.
                 # max.row-1, as the file leaves a bank row at the end
-                for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
+                for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
                                            min_col= 5, max_col= 5, values_only=False):
                     for cell in row:
                         workbook.close()
-                        return cell.coordinate
+                        ic(cell, self.output_file, self.month)
+                        return (cell, self.output_file, self.month)
 
-            # Gets last month avaiable
-            sheet = sheets[-1]
+            # # List of all sheets of workbook, then loads sheet
+            sheet_str = sheets[-1]
+            sheet = workbook[sheet_str]
             # Gets the last month in that year, returing last total of that month
-            for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
+            for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
                                            min_col= 5, max_col= 5, values_only=False):
                 for cell in row:
                     workbook.close()
-                    return cell.coordinate
+                    ic(cell, self.output_file, self.month)
+                    return (cell, self.output_file, sheet_str)
 
         # Gets the last month of the year before
         elif os.path.exists(year_before):
@@ -176,20 +206,21 @@ class FinanacialManager:
             sheets = workbook.sheetnames
 
             try:
-                # Gets last month avaiable
-                sheet = sheets[-1]
+                # List of all sheets of workbook, then loads sheet
+                sheet_str = sheets[-1]
+                sheet = workbook[sheet_str]
                 # Gets the last month in that year, returing last total of that month
                 for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
                                             min_col= 5, max_col= 5, values_only=False):
                     for cell in row:
                         workbook.close()
-                        return cell.coordinate
+                        return (cell, year_before, sheet_str)
             except ValueError as val_error:
                 print(val_error)
 
         else: # For very first statement
             print('no privous month or year has been found')
-            return 1000
+            return [1000, None, None]
             # raise ValueError('Error: no privous month or year has been found')
 
     def set_colour_row(self, data: pd.DataFrame, given_idx: int) -> None:
@@ -213,3 +244,30 @@ class FinanacialManager:
         # Save the workbook
         workbook.save(self.output_file)
         workbook.close()
+
+    def sum_function_row1(self, last_total_cell: list[Cell|None, str|None, str|None], iteration: int, cell_value: int, cell_coordinate: str) -> str:
+        """
+        Function to check how the first row of the sheet should get the last total
+        . Either getting a int value, continuing from the same month, getting it from another sheet or getting it from another workbook
+        """
+        # First time creating a worbook ever
+        if last_total_cell[1] is None:
+            function_total = f'=SUM(D{iteration+2},{cell_value})'
+
+        # Needing to reference the total of the last_row of another sheet or workbook
+
+        # Same Year
+        elif last_total_cell[1] == self.output_file:
+            # Same Month
+            if last_total_cell[2] == self.month:
+                function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
+
+            # Different Month in workbook
+            # Function is the SUM of amount with the month!cell_of_last_total (EXCEL VERSION & GOOGLE_SHEETS)
+            else:
+                function_total = f"=SUM(D{iteration+2},{last_total_cell[2]}!{cell_coordinate})"
+
+        # Different Year (EXCEL VERSION ONLY) <----
+        else:
+            function_total = f"=SUM(D{iteration+2},[{last_total_cell[1]}]{last_total_cell[2]}!{cell_coordinate})"
+        return function_total
