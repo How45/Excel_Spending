@@ -1,16 +1,16 @@
 """
 Os managment, helper function, extraction stuff
 """
+import os
 import extraction_file as ef
 from helper_function import extract_name
-import os
 
 def main():
     """
     Main file
     """
-    for file_name in ['statements/TestA_11_2022.csv',
-                      'statements/Barclay_11_2023.csv',
+    for file_name in ['statements/Barclay_11_2023.csv',
+                      'statements/TestA_11_2023.csv',
                       'statements/Barclay_12_2023.csv']:
         # file_name = 'statements/TestA_11_2023.csv'
         bank, month, year = extract_name(file_name.split('.')[0])
@@ -18,6 +18,7 @@ def main():
         statement = ef.FinanacialManager(bank, year, month)
         data = statement.clean(file_name)
         statement.tally_account(data)
+        # statement.update_sheets()
 
 def clean_through():
     """

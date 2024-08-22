@@ -3,22 +3,22 @@ File to get statements to put them on spreadsheet
 """
 import os
 import json
+from zipfile import BadZipfile
 import pandas as pd
-from numpy import int64
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
 from openpyxl.styles import PatternFill
-from helper_function import last_year, memo_extraction, rgb_to_rbga
 from icecream import ic
+from helper_function import get_privous_year, memo_extraction, rgb_to_rbga
 class FinanacialManager:
     """
     Deals with cleaning of statements and puts them in sheets
     """
     def __init__(self, bank, year, month):
-        self.bank = bank
-        self.year = year
-        self.month = month
-        self.output_file = f'finance/{year}.xlsx' # Where records are kept
+        self.bank:str = bank
+        self.year:str = year
+        self.month:str = month
+        self.output_file:str = f'finance/{year}.xlsx' # Where records are kept
 
     # Needs to be re-done (normalise so it can gt all data)
     def clean(self, statement: str) -> pd.DataFrame:
@@ -81,10 +81,10 @@ class FinanacialManager:
         elif os.path.exists(self.output_file):
             # Loads workbook and gets the lists of sheets name
             workbook = load_workbook(filename=self.output_file)
-            sheet_list = workbook.sheetnames
+            sheets = workbook.sheetnames
 
             # Checking if month is in the year workbook
-            if self.month in sheet_list:
+            if self.month in sheets:
 
                 # Checks if that bank is already added
                 if not self.check_existing_bank():
@@ -94,7 +94,7 @@ class FinanacialManager:
                     last_row = sheet.max_row
 
                     # Getting row of dataframe (overlay at end of the row), workbook auto-closes
-                    with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
+                    with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer: # pylint: disable=abstract-class-instantiated
                         df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False, header=False)
 
                     # Set all to the colour
@@ -107,7 +107,7 @@ class FinanacialManager:
             # New month in year file
             else:
                 # Workbook auto closes
-                with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a') as writer:
+                with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a') as writer: # pylint: disable=abstract-class-instantiated
                     df.to_excel(writer, sheet_name=self.month, index=False)
 
                 # Set all to the colour
@@ -115,9 +115,56 @@ class FinanacialManager:
         else:
             raise ValueError('No files found')
 
+    def update_sheets(self):
+        """
+        Checks and updates any needs in the workbook or in workbooks head of the one being created
+        """
+
+        files = os.listdir(path='finance/')
+        closes_month, closes_year = None, None
+
+        try:
+            for file in files:
+                file_year = file.split('.')[0]
+                if int(file_year) >= int(self.year):
+                    if closes_year is None or int(file_year) < closes_year:
+                        closes_year = int(file_year)
+
+            workbook = load_workbook(f'finance/{closes_year}.xlsx')
+            sheet_names = workbook.sheetnames
+            for sheet in sheet_names:
+                if int(sheet) > int(self.month):
+                    if closes_month is None or int(sheet) < closes_month:
+                        closes_month = int(sheet)
+
+            workbook.close()
+            self.update_first_line(closes_year,closes_month)
+        except (ValueError, BadZipfile):
+            print("Nothing above it")
+
+    def update_first_line(self, closes_year,closes_month) -> None:
+        """
+        Updates the closes workbook top row, linking to new last row
+        """
+        current_total_cell = self.get_last_total_cell()
+
+        workbook = load_workbook(filename=f'finance/{closes_year}.xlsx')
+        sheet = workbook[str(closes_month)]
+
+        # If in the same year workbook, just reference sheet month
+        if current_total_cell[1] == f'finance/{closes_year}.xlsx':
+            function_total = f"=SUM(D2,{current_total_cell[2]}!{current_total_cell[0].coordinate})"
+
+        # If in diff year workbook, closes_year ahead of current_workbook needs to reference current_workbook
+        else:
+            function_total = f"=SUM(D2,[{os.path.abspath(current_total_cell[1])}]{current_total_cell[2]}!{current_total_cell[0].coordinate})"
+
+        sheet.cell(row=2,column=5,value=function_total)
+        workbook.close()
+
     def check_existing_bank(self):
         """
-        Checks if theres already the name of the bank in the month of that year
+        Checks if theres already the name of the bank in the month of that yearg
         """
         df = pd.read_excel(self.output_file)
         return self.bank in df['Bank'].values
@@ -138,17 +185,17 @@ class FinanacialManager:
         # Believe is only needed when no workbook has existed
         else:
             # cell_value = last_total_cell[0].value
+            cell_value = 0
             cell_coordinate: str = last_total_cell[0].coordinate
 
         iteration = 0
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
             if iteration == 0:
-                function_total = self.sum_function_row1(last_total_cell, iteration, cell_value, cell_coordinate)
+                function_total = self.sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
 
             elif iteration == 1:
                 # Current row + total from above
                 function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
-
 
             else:
                 # Increase the cell E(n) to E(n+1)
@@ -171,7 +218,7 @@ class FinanacialManager:
         Retrieves last total from file (checks current year or previous year)
         """
         # If the year before exits
-        year_before = f'finance/{last_year(self.year)}.xlsx'
+        year_before = f'finance/{get_privous_year(self.year)}.xlsx'
 
         # If year exists
         if os.path.exists(self.output_file):
@@ -184,9 +231,9 @@ class FinanacialManager:
                 # max.row-1, as the file leaves a bank row at the end
                 for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
                                            min_col= 5, max_col= 5, values_only=False):
+                    # Reading content of cell
                     for cell in row:
                         workbook.close()
-                        ic(cell, self.output_file, self.month)
                         return (cell, self.output_file, self.month)
 
             # # List of all sheets of workbook, then loads sheet
@@ -195,9 +242,9 @@ class FinanacialManager:
             # Gets the last month in that year, returing last total of that month
             for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
                                            min_col= 5, max_col= 5, values_only=False):
+                # Reading content of cell
                 for cell in row:
                     workbook.close()
-                    ic(cell, self.output_file, self.month)
                     return (cell, self.output_file, sheet_str)
 
         # Gets the last month of the year before
@@ -212,6 +259,7 @@ class FinanacialManager:
                 # Gets the last month in that year, returing last total of that month
                 for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
                                             min_col= 5, max_col= 5, values_only=False):
+                    # Reading content of cell
                     for cell in row:
                         workbook.close()
                         return (cell, year_before, sheet_str)
@@ -245,29 +293,48 @@ class FinanacialManager:
         workbook.save(self.output_file)
         workbook.close()
 
-    def sum_function_row1(self, last_total_cell: list[Cell|None, str|None, str|None], iteration: int, cell_value: int, cell_coordinate: str) -> str:
+    def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
+                     cell_value: int, cell_coordinate: str) -> str:
         """
-        Function to check how the first row of the sheet should get the last total
-        . Either getting a int value, continuing from the same month, getting it from another sheet or getting it from another workbook
+        Computes the last total for the first row of the sheet.
+
+        The function determines how the first row should derive the last total, either by:
+        - Continuing from the same month
+        - Fetching the total from another sheet
+        - Fetching the total from another workbook
+
+        Parameters:
+        ----------
+        last_year : str|None
+            The privious year gotten from the last_total_cell or None
+        last_month : str
+            The privious month gotten from the last_total_cell
+        iteration : int
+            The row number for the current Income/Spending being processed.
+            Value will be +2 as excel starts on base 1 and we are skipping the header row
+        cell_value : int
+            A starting value or 0 if no value is provided.
+        cell_coordinate : str
+            The cell coordinate indicating where the total is located (e.g., 'E2', 'E36').
         """
         # First time creating a worbook ever
-        if last_total_cell[1] is None:
+        if last_year is None:
             function_total = f'=SUM(D{iteration+2},{cell_value})'
 
         # Needing to reference the total of the last_row of another sheet or workbook
 
         # Same Year
-        elif last_total_cell[1] == self.output_file:
+        elif last_year == self.output_file:
             # Same Month
-            if last_total_cell[2] == self.month:
+            if last_month == self.month:
                 function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
 
             # Different Month in workbook
             # Function is the SUM of amount with the month!cell_of_last_total (EXCEL VERSION & GOOGLE_SHEETS)
             else:
-                function_total = f"=SUM(D{iteration+2},{last_total_cell[2]}!{cell_coordinate})"
+                function_total = f"=SUM(D{iteration+2},{last_month}!{cell_coordinate})"
 
         # Different Year (EXCEL VERSION ONLY) <----
         else:
-            function_total = f"=SUM(D{iteration+2},[{last_total_cell[1]}]{last_total_cell[2]}!{cell_coordinate})"
+            function_total = f"=SUM(D{iteration+2},[{os.path.abspath(last_year)}]{last_month}!{cell_coordinate})"
         return function_total

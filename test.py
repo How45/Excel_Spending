@@ -35,5 +35,27 @@ class TestExtractionFile(unittest.TestCase):
                 # the value in that cell,the whole cell tuple, veriable type
                 print(cell.parent.title, cell.coordinate, cell.value, cell, type(cell)) # String
 
+    def close_file(self):
+        """
+        .
+        """
+        for file_name in ['statements/Barclay_11_2023.csv',
+                      'statements/Barclay_12_2023.csv']:
+            # file_name = 'statements/TestA_11_2023.csv'
+            bank, month, year = hf.extract_name(file_name.split('.')[0])
+
+            statement = ef.FinanacialManager(bank, year, month)
+            data = statement.clean(file_name)
+            statement.tally_account(data)
+
+        # Test the update
+        file_name = 'statements/TestA_11_2023.csv'
+        bank, month, year = hf.extract_name(file_name.split('.')[0])
+
+        statement = ef.FinanacialManager(bank, year, month)
+        data = statement.clean(file_name)
+        statement.tally_account(data)
+        statement.update_sheets()
+
 if __name__ == '__main__':
     unittest.main()

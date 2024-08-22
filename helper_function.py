@@ -11,7 +11,7 @@ def extract_name(file: str) -> tuple[str, str, str]:
     bank, month, year = names[0].split('/')[1], names[1], names[2]
     return bank, month, year
 
-def last_year(year) -> list[str]:
+def get_privous_year(year) -> list[str]:
     """
     Gets last known year before
     """
