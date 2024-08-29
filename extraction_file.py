@@ -190,6 +190,7 @@ class FinanacialManager:
 
         iteration = 0
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
+            ic(cell_coordinate)
             if iteration == 0:
                 function_total = self.sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
 
@@ -198,6 +199,7 @@ class FinanacialManager:
                 function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
 
             else:
+                ic(cell_coordinate)
                 # Increase the cell E(n) to E(n+1)
                 cell_coordinate = f'E{int(cell_coordinate[1:])+1}'
                 # Current row + total from above
@@ -330,11 +332,11 @@ class FinanacialManager:
                 function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
 
             # Different Month in workbook
-            # Function is the SUM of amount with the month!cell_of_last_total (EXCEL VERSION & GOOGLE_SHEETS)
+            # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
             else:
-                function_total = f"=SUM(D{iteration+2},{last_month}!{cell_coordinate})"
+                function_total = f"=SUM(D{iteration+2},{last_month}.{cell_coordinate})"
 
-        # Different Year (EXCEL VERSION ONLY) <----
+        # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
-            function_total = f"=SUM(D{iteration+2},[{os.path.abspath(last_year)}]{last_month}!{cell_coordinate})"
+            function_total = f"=SUM(D{iteration+2},{os.path.abspath(last_year)}#${last_month}.{cell_coordinate})"
         return function_total
