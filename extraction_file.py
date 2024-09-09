@@ -199,7 +199,7 @@ class FinanacialManager:
                 function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
 
             else:
-                ic(cell_coordinate)
+                # ic(cell_coordinate)
                 # Increase the cell E(n) to E(n+1)
                 cell_coordinate = f'E{int(cell_coordinate[1:])+1}'
                 # Current row + total from above
