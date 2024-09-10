@@ -288,7 +288,11 @@ class FinanacialManager:
                 # Excel starts on indexed-1 and pandas is indexed-0 (Also header on the first line)
                 # Fills only Column B
                 # Removing Colour list
-                cell = sheet[idx+given_idx+2][1]
+                # If starting index 0 (+2) if its a continuation of a line +1
+                if given_idx:
+                    cell = sheet[idx+given_idx+1][1]
+                else:
+                    cell = sheet[idx+given_idx+2][1]
                 cell.fill = fill
                 cell.value = None
         # Save the workbook
