@@ -170,7 +170,8 @@ class FinanacialManager:
         return self.bank in df['Bank'].values
 
     def to_dataframe(self, amounts: list[int], memos: list[str],
-                  last_total_cell: tuple[Cell|None, str|None, str|None], colours: list[int], dates: list[str]) -> pd.DataFrame:
+                  last_total_cell: tuple[Cell|None, str|None, str|None],
+                  colours: list[int], dates: list[str]) -> pd.DataFrame:
         """
         Creates dataframe to a new sheet
         """
@@ -190,20 +191,20 @@ class FinanacialManager:
 
         iteration = 0
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
-            ic(cell_coordinate)
             if iteration == 0:
-                function_total = self.sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
+                # If we are adding a bank in the same month. Iteration: 1 is skipped
+                function_total, iteration = self.sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
 
             elif iteration == 1:
-                # Current row + total from above
-                function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
+                # Current spending row + last total
+                cell_coordinate = 'E2'
+                function_total = f'=SUM(D3,{cell_coordinate})'
 
             else:
-                # ic(cell_coordinate)
                 # Increase the cell E(n) to E(n+1)
                 cell_coordinate = f'E{int(cell_coordinate[1:])+1}'
-                # Current row + total from above
-                function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
+                # Current spending row + last total
+                function_total = f'=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})'
 
             row = {"Date": date,
                     "Colour": colour,
@@ -325,7 +326,7 @@ class FinanacialManager:
         """
         # First time creating a worbook ever
         if last_year is None:
-            function_total = f'=SUM(D{iteration+2},{cell_value})'
+            function_total = f'=SUM(D{2},{cell_value})'
 
         # Needing to reference the total of the last_row of another sheet or workbook
 
@@ -333,14 +334,16 @@ class FinanacialManager:
         elif last_year == self.output_file:
             # Same Month
             if last_month == self.month:
-                function_total = f'=SUM(D{iteration+2},{cell_coordinate})'
+                # int(cell_coordinate[1])+1 : Getting the last known cell then +1 to get the correct row.
+                function_total = f'=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})'
+                iteration += 1
 
             # Different Month in workbook
             # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
             else:
-                function_total = f"=SUM(D{iteration+2},{last_month}.{cell_coordinate})"
+                function_total = f"=SUM(D{2},'{last_month}'.{cell_coordinate})"
 
         # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
-            function_total = f"=SUM(D{iteration+2},{os.path.abspath(last_year)}#${last_month}.{cell_coordinate})"
-        return function_total
+            function_total = f"=SUM(D{2},{os.path.abspath(last_year)}#$'{last_month}'.{cell_coordinate})"
+        return function_total, iteration
