@@ -7,7 +7,7 @@ from zipfile import BadZipfile
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
-from openpyxl.styles import PatternFill
+from openpyxl.styles import PatternFill, Font, Color, Alignment
 from icecream import ic
 from helper_function import get_privous_year, memo_extraction, rgb_to_rbga
 class FinanacialManager:
@@ -75,7 +75,7 @@ class FinanacialManager:
         if not os.path.exists(self.output_file):
             df.to_excel(self.output_file, sheet_name=self.month, index=False)
             # setting row to start at 0
-            self.set_colour_row(df, 0)
+            self.clean_cells(df, 0)
 
         # If year file exists
         elif os.path.exists(self.output_file):
@@ -98,7 +98,7 @@ class FinanacialManager:
                         df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False, header=False)
 
                     # Set all to the colour
-                    self.set_colour_row(df, int(last_row))
+                    self.clean_cells(df, int(last_row))
                 else:
                     # Skips the adding of already exiting bank
                     print(f'{self.bank} exists already in that year')
@@ -111,7 +111,7 @@ class FinanacialManager:
                     df.to_excel(writer, sheet_name=self.month, index=False)
 
                 # Set all to the colour
-                self.set_colour_row(df, 0)
+                self.clean_cells(df, 0)
         else:
             raise ValueError('No files found')
 
@@ -274,13 +274,14 @@ class FinanacialManager:
             return [1000, None, None]
             # raise ValueError('Error: no privous month or year has been found')
 
-    def set_colour_row(self, data: pd.DataFrame, given_idx: int) -> None:
+    def clean_cells(self, data: pd.DataFrame, given_idx: int) -> None:
         """
         Goes through month to change RBG to fill colour
         """
         workbook = load_workbook(filename=self.output_file)
         sheet = workbook[self.month]
         for idx, row in data.iterrows():
+
             rgb = row['Colour']
             if rgb:
                 hex_color = rgb_to_rbga(rgb)
@@ -292,10 +293,26 @@ class FinanacialManager:
                 # If starting index 0 (+2) if its a continuation of a line +1
                 if given_idx:
                     cell = sheet[idx+given_idx+1][1]
+
+                    cell_spending = sheet[idx+given_idx+1][3]
+                    cell_total = sheet[idx+given_idx+1][4]
                 else:
                     cell = sheet[idx+given_idx+2][1]
+
+                    cell_spending = sheet[idx+given_idx+2][3]
+                    cell_total = sheet[idx+given_idx+2][4]
+
                 cell.fill = fill
                 cell.value = None
+
+                # Setting to currency format
+                cell_spending.number_format =  '£#,##0.00'
+                cell_total.number_format = '£#,##0.00'
+                if cell_spending.value < 0:
+                    cell_spending.font = Font(color="ff0000", name='Calibri')
+                cell_spending.alignment = Alignment(horizontal='center')
+                cell_total.alignment = Alignment(horizontal='center')
+
         # Save the workbook
         workbook.save(self.output_file)
         workbook.close()
