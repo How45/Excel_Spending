@@ -7,9 +7,9 @@ from zipfile import BadZipfile
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.cell.cell import Cell
-from openpyxl.styles import PatternFill, Font, Color, Alignment
 from icecream import ic
-from helper_function import get_privous_year, memo_extraction, rgb_to_rbga
+from extract_info import get_privous_year, memo_extraction
+from clean_sheet import clean_cells
 class FinanacialManager:
     """
     Deals with cleaning of statements and puts them in sheets
@@ -52,7 +52,7 @@ class FinanacialManager:
             # Checks if item is not in remove_memo
             if key.lower() not in [x.lower() for x in bank_info['remove_memo']]:
                 type_memo, colour = memo_extraction(memo_operations, key)
-                if colour == [255,255,255]:
+                if colour == "ffffff":
                     # Rise any non memo.json naming
                     print(f'You need to add {type_memo} to json file')
 
@@ -75,7 +75,7 @@ class FinanacialManager:
         if not os.path.exists(self.output_file):
             df.to_excel(self.output_file, sheet_name=self.month, index=False)
             # setting row to start at 0
-            self.clean_cells(df, 0)
+            clean_cells(self.output_file, self.month, 0)
 
         # If year file exists
         elif os.path.exists(self.output_file):
@@ -98,7 +98,7 @@ class FinanacialManager:
                         df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False, header=False)
 
                     # Set all to the colour
-                    self.clean_cells(df, int(last_row))
+                    clean_cells(self.output_file, self.month, int(last_row))
                 else:
                     # Skips the adding of already exiting bank
                     print(f'{self.bank} exists already in that year')
@@ -111,7 +111,7 @@ class FinanacialManager:
                     df.to_excel(writer, sheet_name=self.month, index=False)
 
                 # Set all to the colour
-                self.clean_cells(df, 0)
+                clean_cells(self.output_file, self.month, 0)
         else:
             raise ValueError('No files found')
 
@@ -179,7 +179,7 @@ class FinanacialManager:
         # If the very first file is created, using default starting value
         if last_total_cell[1] is None:
             cell_value: int = last_total_cell[0]
-            cell_coordinate: str = 'E2'
+            cell_coordinate: str = "E2"
 
         # If refrencing another sheet or workbook
         # I don't believe we will need cell_value
@@ -197,14 +197,14 @@ class FinanacialManager:
 
             elif iteration == 1:
                 # Current spending row + last total
-                cell_coordinate = 'E2'
-                function_total = f'=SUM(D3,{cell_coordinate})'
+                cell_coordinate = "E2"
+                function_total = f"=SUM(D3,{cell_coordinate})"
 
             else:
                 # Increase the cell E(n) to E(n+1)
-                cell_coordinate = f'E{int(cell_coordinate[1:])+1}'
+                cell_coordinate = f"E{int(cell_coordinate[1:])+1}"
                 # Current spending row + last total
-                function_total = f'=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})'
+                function_total = f"=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})"
 
             row = {"Date": date,
                     "Colour": colour,
@@ -271,51 +271,8 @@ class FinanacialManager:
 
         else: # For very first statement
             print('no privous month or year has been found')
-            return [1000, None, None]
+            return [11579.72, None, None]
             # raise ValueError('Error: no privous month or year has been found')
-
-    def clean_cells(self, data: pd.DataFrame, given_idx: int) -> None:
-        """
-        Goes through month to change RBG to fill colour
-        """
-        workbook = load_workbook(filename=self.output_file)
-        sheet = workbook[self.month]
-        for idx, row in data.iterrows():
-
-            rgb = row['Colour']
-            if rgb:
-                hex_color = rgb_to_rbga(rgb)
-                fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
-
-                # Excel starts on indexed-1 and pandas is indexed-0 (Also header on the first line)
-                # Fills only Column B
-                # Removing Colour list
-                # If starting index 0 (+2) if its a continuation of a line +1
-                if given_idx:
-                    cell = sheet[idx+given_idx+1][1]
-
-                    cell_spending = sheet[idx+given_idx+1][3]
-                    cell_total = sheet[idx+given_idx+1][4]
-                else:
-                    cell = sheet[idx+given_idx+2][1]
-
-                    cell_spending = sheet[idx+given_idx+2][3]
-                    cell_total = sheet[idx+given_idx+2][4]
-
-                cell.fill = fill
-                cell.value = None
-
-                # Setting to currency format
-                cell_spending.number_format =  '£#,##0.00'
-                cell_total.number_format = '£#,##0.00'
-                if cell_spending.value < 0:
-                    cell_spending.font = Font(color="ff0000", name='Calibri')
-                cell_spending.alignment = Alignment(horizontal='center')
-                cell_total.alignment = Alignment(horizontal='center')
-
-        # Save the workbook
-        workbook.save(self.output_file)
-        workbook.close()
 
     def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
                      cell_value: int, cell_coordinate: str) -> str:
@@ -352,15 +309,16 @@ class FinanacialManager:
             # Same Month
             if last_month == self.month:
                 # int(cell_coordinate[1])+1 : Getting the last known cell then +1 to get the correct row.
-                function_total = f'=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})'
+                function_total = f"=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})"
                 iteration += 1
 
             # Different Month in workbook
             # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
             else:
-                function_total = f"=SUM(D{2},'{last_month}'.{cell_coordinate})"
+                function_total = f"=SUM(D{2},'{last_month}'!{cell_coordinate})"
 
         # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
             function_total = f"=SUM(D{2},{os.path.abspath(last_year)}#$'{last_month}'.{cell_coordinate})"
+
         return function_total, iteration

@@ -2,6 +2,7 @@
 Helper functions
 """
 import os
+import re
 
 def extract_name(file: str) -> tuple[str, str, str]:
     """
@@ -32,7 +33,7 @@ def get_privous_year(year) -> list[str]:
         return 0
     return closes_year
 
-def memo_extraction(memo_operations, key: str) -> tuple[str, list[int]]:
+def memo_extraction(memo_operations, key: str) -> tuple[str, str]:
     """
     Memos that should be in sheets converted to simply categories (e.g. Food, Housing)
     """
@@ -41,14 +42,11 @@ def memo_extraction(memo_operations, key: str) -> tuple[str, list[int]]:
 
     for memo_naming in memo_operations:
         for m in memo_operations[memo_naming]['memos']:
-            if m.lower() in key.lower():
-                return memo_naming, memo_operations[memo_naming]['colour']
+            try:
+                if bool(re.match(m.lower(),key.lower())):
+                    return memo_naming, memo_operations[memo_naming]['colour']
+            except re.error:
+                if m.lower() in key.lower():
+                    return memo_naming, memo_operations[memo_naming]['colour']
     # If memo is not find in JSON file
-    return key, [255,255,255]
-
-def rgb_to_rbga(rgb: list[int]) -> str:
-    """
-    Convert an RGB list to a RGBa string
-    """
-    r,g,b = rgb[0], rgb[1], rgb[2]
-    return  f'{r:02x}{g:02x}{b:02x}'
+    return key, "ffffff" #ffffff

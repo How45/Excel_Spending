@@ -3,15 +3,14 @@ Os managment, helper function, extraction stuff
 """
 import os
 import extraction_file as ef
-from helper_function import extract_name
+from extract_info import extract_name
 
 def main():
     """
     Main file
     """
-    for file_name in ['statements/Barclay_11_2023.csv',
-                      'statements/TestA_11_2023.csv',
-                      'statements/Barclay_12_2023.csv']:
+    statement = [f'statements/{file}' for file in os.listdir('statements/')]
+    for file_name in statement:
         # file_name = 'statements/TestA_11_2023.csv'
         bank, month, year = extract_name(file_name.split('.')[0])
 

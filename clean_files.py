@@ -1,6 +1,6 @@
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
-from helper_function import memo_extraction, rgb_to_rbga
+from extract_info import memo_extraction, rgb_to_rbga
 
 class CleanFileManager:
     """

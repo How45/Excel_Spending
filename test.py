@@ -2,7 +2,7 @@
 .
 """
 import unittest
-import helper_function as hf
+import extract_info as hf
 import extraction_file as ef
 from openpyxl import load_workbook
 
