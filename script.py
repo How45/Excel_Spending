@@ -4,6 +4,7 @@ Os managment, helper function, extraction stuff
 import os
 import extraction_file as ef
 from extract_info import extract_name
+from clean_sheet import clean_year
 
 def main():
     """
@@ -24,12 +25,23 @@ def clean_through():
     Goes through all files and cleans anything that was unknown
     e.g. Adds colour and proper naming convention to columns
     """
-    path = 'finance/'
-    files = os.listdir(path=path)
+    files = [f'finance/{file}' for file in os.listdir('finance/')]
+    print(files)
 
     for year in files:
-        statement = ef.FinanacialManager(None, year.split('.')[0], None)
+        clean_year(year)
         # | Work in progress |
 
+
 if __name__ == "__main__":
-    main()
+    num = input("""
+1. Main()
+2. Clean_through()
+""")
+    match int(num):
+        case 1:
+            main()
+        case 2:
+            clean_through()
+        case _:
+            print("Nope")

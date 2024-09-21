@@ -43,7 +43,7 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
         given_idx += 2
 
     for idx, row in enumerate(sheet.iter_rows(min_row=given_idx, values_only=True)):
-        hex_color = row[1] # Colour
+        hex_color = row[1] # row : list, [Colour]
         idx_row = given_idx+idx
 
         if hex_color:
@@ -52,13 +52,12 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
             # Excel starts on indexed-1 and pandas is indexed-0 (Also header on the first line)
             # Fills only Column B
             # Removing Colour list
-            cell = sheet[idx_row][1] # Colour
-            ic(cell)
-            cell_spending = sheet[idx_row][3] # Income/Spending
-            cell_total = sheet[idx_row][4] # Total
+            cell_colour = sheet[idx_row][1] # Colour, the cell value
+            cell_spending = sheet[idx_row][3] # Income/Spending, the cell value
+            cell_total = sheet[idx_row][4] # Total, the cell value
 
-            cell.fill = fill
-            cell.value = None
+            cell_colour.fill = fill
+            cell_colour.value = None
 
             # Setting to currency format
             cell_spending.number_format =  '£#,##0.00'
@@ -66,16 +65,16 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
 
             if cell_spending.value < 0:
                 cell_spending.font = Font(color="ff0000", name='Calibri')
-                cell_spending.alignment = Alignment(horizontal='center')
-                cell_total.alignment = Alignment(horizontal='center')
+            cell_spending.alignment = Alignment(horizontal='center')
+            cell_total.alignment = Alignment(horizontal='center')
 
     # Save the workbook
     workbook.save(output_file)
     workbook.close()
 
-def clean_through(file: str) -> None:
+def clean_year(file: str) -> None:
     """
-    Goes through file and cleans any missing memo changes. Will also change the colour.
+    Goes through file (year) and cleans any missing memo changes. Will also change the colour.
     Output is printing in terminal for any missing memos that haven't been added in JSON file.
 
     The function will:
@@ -87,15 +86,22 @@ def clean_through(file: str) -> None:
         memo_file = json.load(f)
     workbook = load_workbook(filename=file)
 
-    avoid_memos = list(memo_file.keys)
-    ic(avoid_memos)
+    avoid_memos = list(memo_file.keys())
     for month in workbook:
-        sheet = workbook[month]
 
         # Start at first cell (execel is a start base of 1 and the first row is the column names)
-        for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True)):
-            if not row in avoid_memos:
-               category, colour = memo_extraction(memo_file, row[2])
+        for idx, row in enumerate(month.iter_rows(min_row=2, values_only=True)):
+            if not row[2] in avoid_memos:
+                category, hex_color = memo_extraction(memo_file, row[2])
 
-               cell_colour = sheet[idx][1] # Colour
+                if hex_color != "ffffff":
+                    cell_colour = month[idx+2][1] # Colour, cell value
+                    cell_category = month[idx+2][2]
 
+                    fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
+                    cell_colour.fill = fill
+                    cell_category.value = category
+
+    # Save the workbook
+    workbook.save(file)
+    workbook.close()
