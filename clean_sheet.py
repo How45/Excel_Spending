@@ -43,7 +43,7 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
         given_idx += 2
 
     for idx, row in enumerate(sheet.iter_rows(min_row=given_idx, values_only=True)):
-        hex_color = row[1]
+        hex_color = row[1] # Colour
         idx_row = given_idx+idx
 
         if hex_color:
@@ -52,9 +52,10 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
             # Excel starts on indexed-1 and pandas is indexed-0 (Also header on the first line)
             # Fills only Column B
             # Removing Colour list
-            cell = sheet[idx_row][1]
-            cell_spending = sheet[idx_row][3]
-            cell_total = sheet[idx_row][4]
+            cell = sheet[idx_row][1] # Colour
+            ic(cell)
+            cell_spending = sheet[idx_row][3] # Income/Spending
+            cell_total = sheet[idx_row][4] # Total
 
             cell.fill = fill
             cell.value = None
@@ -72,7 +73,7 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
     workbook.save(output_file)
     workbook.close()
 
-def clean_through(file: str):
+def clean_through(file: str) -> None:
     """
     Goes through file and cleans any missing memo changes. Will also change the colour.
     Output is printing in terminal for any missing memos that haven't been added in JSON file.
@@ -94,6 +95,7 @@ def clean_through(file: str):
         # Start at first cell (execel is a start base of 1 and the first row is the column names)
         for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True)):
             if not row in avoid_memos:
-                memo_extraction(memo_file, row[2])
+               category, colour = memo_extraction(memo_file, row[2])
 
+               cell_colour = sheet[idx][1] # Colour
 
