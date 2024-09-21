@@ -33,9 +33,16 @@ def get_privous_year(year) -> list[str]:
         return 0
     return closes_year
 
-def memo_extraction(memo_operations, key: str) -> tuple[str, str]:
+def memo_extraction(memo_operations: dict, key: str) -> tuple[str, str]:
     """
     Memos that should be in sheets converted to simply categories (e.g. Food, Housing)
+
+    Parameters:
+    ----------
+    memo_operations : dict
+        This is the memo.json file in that is opened and stored in a veriable
+    key : str
+        The key is the memo in the bank statement that needs to be matched with a category in the memo.json
     """
     # Goes through memo.json file to match memo to
     # simplified naming scheme

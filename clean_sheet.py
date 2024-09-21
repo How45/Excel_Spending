@@ -1,9 +1,11 @@
 """
 openpyxl : workbook, PattenFill, Font, Alignment
 """
+import json
 from icecream import ic
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
+from extract_info import memo_extraction
 
 
 def clean_cells(output_file:str, month:str, given_idx: int) -> None:
@@ -69,3 +71,29 @@ def clean_cells(output_file:str, month:str, given_idx: int) -> None:
     # Save the workbook
     workbook.save(output_file)
     workbook.close()
+
+def clean_through(file: str):
+    """
+    Goes through file and cleans any missing memo changes. Will also change the colour.
+    Output is printing in terminal for any missing memos that haven't been added in JSON file.
+
+    The function will:
+    - Go through a finance file (i.e. 2024.xlsx)
+    - Read memo.json
+    """
+
+    with open('memo.json', 'r', encoding='utf-8') as f:
+        memo_file = json.load(f)
+    workbook = load_workbook(filename=file)
+
+    avoid_memos = list(memo_file.keys)
+    ic(avoid_memos)
+    for month in workbook:
+        sheet = workbook[month]
+
+        # Start at first cell (execel is a start base of 1 and the first row is the column names)
+        for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True)):
+            if not row in avoid_memos:
+                memo_extraction(memo_file, row[2])
+
+
