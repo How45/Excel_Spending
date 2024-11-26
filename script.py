@@ -11,14 +11,17 @@ def main():
     Main file
     """
     statement = [f'statements/{file}' for file in os.listdir('statements/')]
-    for file_name in statement:
+    sorted_statement = sorted(statement,
+                              key=lambda x: (int(x.split('_')[-1].split('.')[0]), int(x.split('_')[-2]))
+                              )
+    for file_name in sorted_statement:
         # file_name = 'statements/TestA_11_2023.csv'
         bank, month, year = extract_name(file_name.split('.')[0])
 
         statement = ef.FinanacialManager(bank, year, month)
         data = statement.clean(file_name)
         statement.tally_account(data)
-        # statement.update_sheets()
+        statement.update_sheets()
 
 def clean_through():
     """

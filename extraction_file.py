@@ -74,12 +74,10 @@ class FinanacialManager:
         # Checks if a year file has been created
         if not os.path.exists(self.output_file):
             df.to_excel(self.output_file, sheet_name=self.month, index=False)
-            # setting row to start at 0
             clean_cells(self.output_file, self.month, 0)
 
         # If year file exists
         elif os.path.exists(self.output_file):
-            # Loads workbook and gets the lists of sheets name
             workbook = load_workbook(filename=self.output_file)
             sheets = workbook.sheetnames
 
@@ -88,29 +86,24 @@ class FinanacialManager:
 
                 # Checks if that bank is already added
                 if not self.check_existing_bank():
-                    # Adding Data to existing month sheet
                     sheet = workbook[self.month]
-                    # Adding to the bottom of the sheet
                     last_row = sheet.max_row
 
-                    # Getting row of dataframe (overlay at end of the row), workbook auto-closes
                     with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer: # pylint: disable=abstract-class-instantiated
                         df.to_excel(writer, sheet_name=self.month, startrow=last_row, index=False, header=False)
 
-                    # Set all to the colour
                     clean_cells(self.output_file, self.month, int(last_row))
+
                 else:
-                    # Skips the adding of already exiting bank
                     print(f'{self.bank} exists already in that year')
                     print(f'{self.bank}_{self.month}_{self.year}, can be removed')
 
             # New month in year file
             else:
-                # Workbook auto closes
+                print(df.head())
                 with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a') as writer: # pylint: disable=abstract-class-instantiated
                     df.to_excel(writer, sheet_name=self.month, index=False)
 
-                # Set all to the colour
                 clean_cells(self.output_file, self.month, 0)
         else:
             raise ValueError('No files found')
@@ -121,38 +114,39 @@ class FinanacialManager:
         """
 
         files = os.listdir(path='finance/')
-        closes_month, closes_year = None, None
-
+        closest_month: int = None
+        closest_year: int = None
         try:
             for file in files:
                 file_year = file.split('.')[0]
                 if int(file_year) >= int(self.year):
-                    if closes_year is None or int(file_year) < closes_year:
-                        closes_year = int(file_year)
+                    if closest_year is None or int(file_year) < closest_year:
+                        closest_year = int(file_year)
 
-            workbook = load_workbook(f'finance/{closes_year}.xlsx')
+            workbook = load_workbook(f'finance/{closest_year}.xlsx')
             sheet_names = workbook.sheetnames
             for sheet in sheet_names:
                 if int(sheet) > int(self.month):
-                    if closes_month is None or int(sheet) < closes_month:
-                        closes_month = int(sheet)
+                    if closest_month is None or int(sheet) < closest_month:
+                        closest_month = int(sheet)
 
             workbook.close()
-            self.update_first_line(closes_year,closes_month)
-        except (ValueError, BadZipfile):
+            if closest_month and closest_year:
+                self.update_first_line(closest_month, closest_year)
+        except (ValueError):
             print("Nothing above it")
 
-    def update_first_line(self, closes_year,closes_month) -> None:
+    def update_first_line(self, closest_month: int, closest_year: int) -> None:
         """
         Updates the closes workbook top row, linking to new last row
         """
         current_total_cell = self.get_last_total_cell()
 
-        workbook = load_workbook(filename=f'finance/{closes_year}.xlsx')
-        sheet = workbook[str(closes_month)]
+        workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
+        sheet = workbook["0"+str(closest_month)]
 
         # If in the same year workbook, just reference sheet month
-        if current_total_cell[1] == f'finance/{closes_year}.xlsx':
+        if current_total_cell[1] == f'finance/{closest_year}.xlsx':
             function_total = f"=SUM(D2,{current_total_cell[2]}!{current_total_cell[0].coordinate})"
 
         # If in diff year workbook, closes_year ahead of current_workbook needs to reference current_workbook
@@ -186,10 +180,10 @@ class FinanacialManager:
         # Believe is only needed when no workbook has existed
         else:
             # cell_value = last_total_cell[0].value
-            cell_value = 0
+            cell_value: int = 0
             cell_coordinate: str = last_total_cell[0].coordinate
 
-        iteration = 0
+        iteration: int = 0
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
             if iteration == 0:
                 # If we are adding a bank in the same month. Iteration: 1 is skipped
@@ -271,7 +265,7 @@ class FinanacialManager:
 
         else: # For very first statement
             print('no privous month or year has been found')
-            return [11579.72, None, None]
+            return [11774.72, None, None]
             # raise ValueError('Error: no privous month or year has been found')
 
     def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
@@ -319,6 +313,7 @@ class FinanacialManager:
 
         # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
-            function_total = f"=SUM(D{2},{os.path.abspath(last_year)}#$'{last_month}'.{cell_coordinate})"
+            path_year = os.path.abspath(last_year).replace("\\","/")
+            function_total = f"=SUM(D{2},'file:///{path_year}'#$'{last_month}'.{cell_coordinate})"
 
         return function_total, iteration
