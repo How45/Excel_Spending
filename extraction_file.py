@@ -100,7 +100,6 @@ class FinanacialManager:
 
             # New month in year file
             else:
-                print(df.head())
                 with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a') as writer: # pylint: disable=abstract-class-instantiated
                     df.to_excel(writer, sheet_name=self.month, index=False)
 
@@ -113,26 +112,33 @@ class FinanacialManager:
         Checks and updates any needs in the workbook or in workbooks head of the one being created
         """
 
-        files = os.listdir(path='finance/')
+        files: list[str] = os.listdir(path='finance/')
         closest_month: int = None
         closest_year: int = None
+
         try:
             for file in files:
                 file_year = file.split('.')[0]
+
                 if int(file_year) >= int(self.year):
                     if closest_year is None or int(file_year) < closest_year:
                         closest_year = int(file_year)
 
             workbook = load_workbook(f'finance/{closest_year}.xlsx')
             sheet_names = workbook.sheetnames
+
             for sheet in sheet_names:
                 if int(sheet) > int(self.month):
                     if closest_month is None or int(sheet) < closest_month:
                         closest_month = int(sheet)
 
             workbook.close()
+            print(f"👉 {closest_month}/{closest_year}")
             if closest_month and closest_year:
                 self.update_first_line(closest_month, closest_year)
+            else:
+                print(f"👉 Nothing to update -> {self.month}/{self.year}")
+
         except (ValueError):
             print("Nothing above it")
 
@@ -141,19 +147,24 @@ class FinanacialManager:
         Updates the closes workbook top row, linking to new last row
         """
         current_total_cell = self.get_last_total_cell()
+        print(f"👉 Current cell -> {current_total_cell}")
 
         workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
         sheet = workbook["0"+str(closest_month)]
+        print(f"👉 sheet -> {sheet}")
 
         # If in the same year workbook, just reference sheet month
         if current_total_cell[1] == f'finance/{closest_year}.xlsx':
-            function_total = f"=SUM(D2,{current_total_cell[2]}!{current_total_cell[0].coordinate})"
-
+            print(f"👉 {current_total_cell[2]}, {current_total_cell[0].coordinate}")
+            function_total = f"=SUM(D2,$'{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
+            print(f"zz👉 {function_total}")
         # If in diff year workbook, closes_year ahead of current_workbook needs to reference current_workbook
         else:
-            function_total = f"=SUM(D2,[{os.path.abspath(current_total_cell[1])}]{current_total_cell[2]}!{current_total_cell[0].coordinate})"
+            path_year = os.path.abspath(current_total_cell[1]).replace("\\","/")
+            function_total = f"=SUM(D2,'file:///{path_year}'#$'{current_total_cell[2]}'.{current_total_cell[0].coordinate})"
 
-        sheet.cell(row=2,column=5,value=function_total)
+        sheet.cell(row=2,column=5).value = function_total
+        workbook.save(f'finance/{self.year}.xlsx')
         workbook.close()
 
     def check_existing_bank(self):
@@ -294,7 +305,7 @@ class FinanacialManager:
         """
         # First time creating a worbook ever
         if last_year is None:
-            function_total = f'=SUM(D{2},{cell_value})'
+            function_total = f'=SUM(D2,{cell_value})'
 
         # Needing to reference the total of the last_row of another sheet or workbook
 
@@ -309,11 +320,12 @@ class FinanacialManager:
             # Different Month in workbook
             # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
             else:
-                function_total = f"=SUM(D{2},'{last_month}'!{cell_coordinate})"
+                function_total = f"=SUM(D2,$'{last_month}'.{cell_coordinate})"
+                print(f"👉{function_total}")
 
         # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
             path_year = os.path.abspath(last_year).replace("\\","/")
-            function_total = f"=SUM(D{2},'file:///{path_year}'#$'{last_month}'.{cell_coordinate})"
+            function_total = f"=SUM(D2,'file:///{path_year}'#$'{last_month}'.{cell_coordinate})"
 
         return function_total, iteration

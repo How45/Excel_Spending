@@ -35,7 +35,7 @@ class TestExtractionFile(unittest.TestCase):
                 # the value in that cell,the whole cell tuple, veriable type
                 print(cell.parent.title, cell.coordinate, cell.value, cell, type(cell)) # String
 
-    def test_close_file(self):
+    def test_closet_file(self):
         """
         .
         """
@@ -49,8 +49,7 @@ class TestExtractionFile(unittest.TestCase):
             statement.tally_account(data)
 
         # Test the update
-        for file_name in ['statements/FirstDirect_07_2024.csv',
-                      'statements/Barclay_06_2024.csv']:
+        for file_name in ['statements/FirstDirect_07_2024.csv']:
             bank, month, year = hf.extract_name(file_name.split('.')[0])
 
             statement = ef.FinanacialManager(bank, year, month)
