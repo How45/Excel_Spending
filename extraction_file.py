@@ -10,6 +10,8 @@ from openpyxl.cell.cell import Cell
 from icecream import ic
 from extract_info import get_privous_year, memo_extraction
 from clean_sheet import clean_cells
+
+STARTING_VALUE: int = 11774.72
 class FinanacialManager:
     """
     Deals with cleaning of statements and puts them in sheets
@@ -19,7 +21,6 @@ class FinanacialManager:
         self.year:str = year
         self.month:str = month
         self.output_file:str = f'finance/{year}.xlsx' # Where records are kept
-
     # Needs to be re-done (normalise so it can gt all data)
     def clean(self, statement: str) -> pd.DataFrame:
         """
@@ -52,9 +53,9 @@ class FinanacialManager:
             # Checks if item is not in remove_memo
             if key.lower() not in [x.lower() for x in bank_info['remove_memo']]:
                 type_memo, colour = memo_extraction(memo_operations, key)
+
                 if colour == "ffffff":
-                    # Rise any non memo.json naming
-                    print(f'You need to add {type_memo} to json file')
+                    print(f'❌ You need to add {type_memo} to json file')
 
                 # Keeps amount same index as coresponding memo
                 dates.append(date[index])
@@ -95,8 +96,8 @@ class FinanacialManager:
                     clean_cells(self.output_file, self.month, int(last_row))
 
                 else:
-                    print(f'{self.bank} exists already in that year')
-                    print(f'{self.bank}_{self.month}_{self.year}, can be removed')
+                    print(f'❗️ {self.bank} exists already in that year')
+                    print(f'❗️ {self.bank}_{self.month}_{self.year}, can be removed')
 
             # New month in year file
             else:
@@ -131,37 +132,36 @@ class FinanacialManager:
                 if int(sheet) > int(self.month):
                     if closest_month is None or int(sheet) < closest_month:
                         closest_month = int(sheet)
-
             workbook.close()
-            print(f"👉 {closest_month}/{closest_year}")
+
             if closest_month and closest_year:
                 self.update_first_line(closest_month, closest_year)
             else:
-                print(f"👉 Nothing to update -> {self.month}/{self.year}")
+                print(f"❌ Nothing to update -> {self.month}/{self.year}")
 
         except (ValueError):
-            print("Nothing above it")
+            print("❌ Nothing above it")
 
     def update_first_line(self, closest_month: int, closest_year: int) -> None:
         """
         Updates the closes workbook top row, linking to new last row
         """
         current_total_cell = self.get_last_total_cell()
-        print(f"👉 Current cell -> {current_total_cell}")
 
         workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
         sheet = workbook["0"+str(closest_month)]
-        print(f"👉 sheet -> {sheet}")
 
         # If in the same year workbook, just reference sheet month
-        if current_total_cell[1] == f'finance/{closest_year}.xlsx':
-            print(f"👉 {current_total_cell[2]}, {current_total_cell[0].coordinate}")
-            function_total = f"=SUM(D2,$'{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
-            print(f"zz👉 {function_total}")
+        if not current_total_cell[1]:
+            function_total = f"=SUM(D2,{STARTING_VALUE})"
+
+        elif current_total_cell[1] == f'finance/{closest_year}.xlsx':
+            function_total = f"=SUM(D2,'{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
+
         # If in diff year workbook, closes_year ahead of current_workbook needs to reference current_workbook
         else:
             path_year = os.path.abspath(current_total_cell[1]).replace("\\","/")
-            function_total = f"=SUM(D2,'file:///{path_year}'#$'{current_total_cell[2]}'.{current_total_cell[0].coordinate})"
+            function_total = f"=SUM(D2,'file:///[{path_year}]''{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
         sheet.cell(row=2,column=5).value = function_total
         workbook.save(f'finance/{self.year}.xlsx')
@@ -233,27 +233,28 @@ class FinanacialManager:
             workbook = load_workbook(filename=self.output_file)
             sheets = workbook.sheetnames
 
-            if self.month in sheets:  # gets current month
+            # gets current month
+            if self.month in sheets:
                 sheet = workbook[self.month]
-                # Gets the last row of the sheet.
-                # max.row-1, as the file leaves a bank row at the end
+
                 for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
                                            min_col= 5, max_col= 5, values_only=False):
-                    # Reading content of cell
                     for cell in row:
                         workbook.close()
                         return (cell, self.output_file, self.month)
 
-            # # List of all sheets of workbook, then loads sheet
-            sheet_str = sheets[-1]
-            sheet = workbook[sheet_str]
-            # Gets the last month in that year, returing last total of that month
+            privious_month: str = '0'+str(int(self.month)-1)
+            if privious_month in sheets:
+                sheet = workbook[privious_month]
+            else:
+                return (STARTING_VALUE, None, None)
+
             for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
                                            min_col= 5, max_col= 5, values_only=False):
                 # Reading content of cell
                 for cell in row:
                     workbook.close()
-                    return (cell, self.output_file, sheet_str)
+                    return (cell, self.output_file, privious_month)
 
         # Gets the last month of the year before
         elif os.path.exists(year_before):
@@ -272,11 +273,11 @@ class FinanacialManager:
                         workbook.close()
                         return (cell, year_before, sheet_str)
             except ValueError as val_error:
-                print(val_error)
+                print(f"❌ {val_error}")
 
         else: # For very first statement
-            print('no privous month or year has been found')
-            return [11774.72, None, None]
+            print('❗️ no privous month or year has been found')
+            return (STARTING_VALUE, None, None)
             # raise ValueError('Error: no privous month or year has been found')
 
     def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
@@ -320,12 +321,11 @@ class FinanacialManager:
             # Different Month in workbook
             # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
             else:
-                function_total = f"=SUM(D2,$'{last_month}'.{cell_coordinate})"
-                print(f"👉{function_total}")
+                function_total = f"=SUM(D2,$'{last_month}'!{cell_coordinate})"
 
         # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
             path_year = os.path.abspath(last_year).replace("\\","/")
-            function_total = f"=SUM(D2,'file:///{path_year}'#$'{last_month}'.{cell_coordinate})"
+            function_total = f"=SUM(D2,'file:///[{path_year}]''{last_month}'!{cell_coordinate})"
 
         return function_total, iteration

@@ -49,7 +49,7 @@ class TestExtractionFile(unittest.TestCase):
             statement.tally_account(data)
 
         # Test the update
-        for file_name in ['statements/FirstDirect_07_2024.csv']:
+        for file_name in ['statements/Barclay_06_2024.csv']:
             bank, month, year = hf.extract_name(file_name.split('.')[0])
 
             statement = ef.FinanacialManager(bank, year, month)

@@ -21,7 +21,6 @@ def get_privous_year(year) -> list[str]:
     closes_year = None
     for file in xlsx_files:
         file_year = int(file.split('.')[0])
-
         if file_year == int(year)-1:
             return file_year
 
