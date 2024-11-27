@@ -3,12 +3,10 @@ File to get statements to put them on spreadsheet
 """
 import os
 import json
-from zipfile import BadZipfile
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 from openpyxl.cell.cell import Cell
-from icecream import ic
-from extract_info import get_privous_year, memo_extraction, last_row
+from extract_info import get_privous_year, remove_memos, last_row
 from clean_sheet import clean_cells
 
 STARTING_VALUE: int = 11774.72
@@ -20,50 +18,54 @@ class FinanacialManager:
         self.bank:str = bank
         self.year:str = year
         self.month:str = month
-        self.output_file:str = f'finance/{year}.xlsx' # Where records are kept
+        self.output_file:str = f'finance/{year}.xlsx'
+
+    def check_existing_bank(self):
+        """
+        Checks if theres already the name of the bank in the month of that yearg
+        """
+        df = pd.read_excel(self.output_file)
+        return self.bank in df['Bank'].values
+
     # Needs to be re-done (normalise so it can gt all data)
     def clean(self, statement: str) -> pd.DataFrame:
         """
         Cleans bank statement
         """
-        # Loads the json file to extract the needed data for cleaning of statement
         with open('banks.json', 'r', encoding='utf-8') as f:
             bank_operations = json.load(f)
 
-        # Checks bank
         bank_info = bank_operations.get(self.bank)
         if bank_info is None:
             raise KeyError(f'No banks under {self.bank} found')
 
         data = pd.read_csv(statement)
 
-        # Barclays (doesn't have null values, I think)v
+        # Change up if theres null values ATM banks i've used don't
         amount = data[bank_info['amount_column']].tolist()
         date = data[bank_info['Dates']].tolist()
 
         memo = [name.replace('\t', '').replace(' ', '')
                 for name in data[bank_info['memo_column']].tolist()]
 
-        # Removes any amount and memo thats in the remove_memo (sync indexs)
+        # Removes any amount and memo
         with open('memo.json', 'r', encoding='utf-8') as f:
-            memo_operations = json.load(f)
+            memo_json = json.load(f)
 
         amounts, memos, colours, dates = [], [], [], []
         for index, key in enumerate(memo):
             # Checks if item is not in remove_memo
             if key.lower() not in [x.lower() for x in bank_info['remove_memo']]:
-                type_memo, colour = memo_extraction(memo_operations, key)
+                type_memo, colour = remove_memos(memo_json, key)
 
                 if colour == "ffffff":
                     print(f'❌ You need to add {type_memo} to json file')
 
-                # Keeps amount same index as coresponding memo
                 dates.append(date[index])
                 memos.append(type_memo)
                 colours.append(colour)
                 amounts.append(amount[index])
 
-        # gets the last known total
         last_total_cell = self.get_last_total_cell()
 
         return self.to_dataframe(amounts, memos, last_total_cell, colours, dates)
@@ -72,20 +74,16 @@ class FinanacialManager:
         """
         Adds either a new year file or a new month sheet to the year
         """
-        # Checks if a year file has been created
         if not os.path.exists(self.output_file):
             df.to_excel(self.output_file, sheet_name=self.month, index=False)
             clean_cells(self.output_file, self.month, 0)
 
-        # If year file exists
         elif os.path.exists(self.output_file):
             workbook = load_workbook(filename=self.output_file)
             sheets = workbook.sheetnames
 
-            # Checking if month is in the year workbook
             if self.month in sheets:
 
-                # Checks if that bank is already added
                 if not self.check_existing_bank():
                     sheet = workbook[self.month]
                     last_row = sheet.max_row
@@ -99,7 +97,7 @@ class FinanacialManager:
                     print(f'❗️ {self.bank} exists already in that year')
                     print(f'❗️ {self.bank}_{self.month}_{self.year}, can be removed')
 
-            # New month in year file
+            # New month in workbook
             else:
                 with pd.ExcelWriter(self.output_file, engine='openpyxl', mode='a') as writer: # pylint: disable=abstract-class-instantiated
                     df.to_excel(writer, sheet_name=self.month, index=False)
@@ -113,22 +111,22 @@ class FinanacialManager:
         Checks and updates any needs in the workbook or in workbooks head of the one being created
         """
 
-        files: list[str] = os.listdir(path='finance/')
+        fiance_workbooks: list[str] = os.listdir(path='finance/')
         closest_month: int = None
         closest_year: int = None
 
         try:
-            for file in files:
-                file_year = file.split('.')[0]
+            for file in fiance_workbooks:
+                fiance_year = file.split('.')[0]
 
-                if int(file_year) >= int(self.year):
-                    if closest_year is None or int(file_year) < closest_year:
-                        closest_year = int(file_year)
+                if int(fiance_year) >= int(self.year):
+                    if closest_year is None or int(fiance_year) < closest_year:
+                        closest_year = int(fiance_year)
 
             workbook = load_workbook(f'finance/{closest_year}.xlsx')
-            sheet_names = workbook.sheetnames
+            workbook_sheets = workbook.sheetnames
 
-            for sheet in sheet_names:
+            for sheet in workbook_sheets:
                 if int(sheet) > int(self.month):
                     if closest_month is None or int(sheet) < closest_month:
                         closest_month = int(sheet)
@@ -144,7 +142,7 @@ class FinanacialManager:
 
     def update_first_line(self, closest_month: int, closest_year: int) -> None:
         """
-        Updates the closes workbook top row, linking to new last row
+        Updates the closest workbook top row, linking to new last row
         """
         current_total_cell = self.get_last_total_cell()
 
@@ -152,14 +150,14 @@ class FinanacialManager:
         page_no: str = '0'+str(closest_month) if closest_month < 10 else str(closest_month)
         sheet = workbook[page_no]
 
-        # If in the same year workbook, just reference sheet month
+        # If in the same workbook, reference sheet (month)
         if not current_total_cell[1]:
             function_total = f"=SUM(D2,{STARTING_VALUE})"
 
         elif current_total_cell[1] == f'finance/{closest_year}.xlsx':
             function_total = f"=SUM(D2,'{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
-        # If in diff year workbook, closes_year ahead of current_workbook needs to reference current_workbook
+        # ref last_year
         else:
             path_year = os.path.abspath(current_total_cell[1]).replace("\\","/")
             function_total = f"=SUM(D2,'file:///[{path_year}]{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
@@ -168,13 +166,6 @@ class FinanacialManager:
         workbook.save(f'finance/{self.year}.xlsx')
         workbook.close()
 
-    def check_existing_bank(self):
-        """
-        Checks if theres already the name of the bank in the month of that yearg
-        """
-        df = pd.read_excel(self.output_file)
-        return self.bank in df['Bank'].values
-
     def to_dataframe(self, amounts: list[int], memos: list[str],
                   last_total_cell: tuple[Cell|None, str|None, str|None],
                   colours: list[int], dates: list[str]) -> pd.DataFrame:
@@ -182,34 +173,26 @@ class FinanacialManager:
         Creates dataframe to a new sheet
         """
         df = pd.DataFrame()
-        # If the very first file is created, using default starting value
+        # Default value
         if last_total_cell[1] is None:
             cell_value: int = last_total_cell[0]
             cell_coordinate: str = "E2"
-
-        # If refrencing another sheet or workbook
-        # I don't believe we will need cell_value
-        # Believe is only needed when no workbook has existed
         else:
-            # cell_value = last_total_cell[0].value
             cell_value: int = 0
             cell_coordinate: str = last_total_cell[0].coordinate
 
         iteration: int = 0
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
             if iteration == 0:
-                # If we are adding a bank in the same month. Iteration: 1 is skipped
+                # If we are adding a new bank in the same month. Iteration: 1 is skipped
                 function_total, iteration = self.sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
 
             elif iteration == 1:
-                # Current spending row + last total
                 cell_coordinate = "E2"
                 function_total = f"=SUM(D3,{cell_coordinate})"
 
             else:
-                # Increase the cell E(n) to E(n+1)
                 cell_coordinate = f"E{int(cell_coordinate[1:])+1}"
-                # Current spending row + last total
                 function_total = f"=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})"
 
             row = {"Date": date,
@@ -303,22 +286,19 @@ class FinanacialManager:
         if last_year is None:
             function_total = f'=SUM(D2,{cell_value})'
 
-        # Needing to reference the total of the last_row of another sheet or workbook
-
         # Same Year
         elif last_year == self.output_file:
             # Same Month
             if last_month == self.month:
-                # int(cell_coordinate[1])+1 : Getting the last known cell then +1 to get the correct row.
+                # +1 as row starts on 2
                 function_total = f"=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})"
                 iteration += 1
 
-            # Different Month in workbook
-            # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
+            # Different Month in Wrkbook
             else:
                 function_total = f"=SUM(D2,'{last_month}'!{cell_coordinate})"
 
-        # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
+        # LibreOffice Style
         else:
             path_year = os.path.abspath(last_year).replace("\\","/")
 
