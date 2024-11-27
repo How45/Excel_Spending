@@ -3,6 +3,7 @@ Helper functions
 """
 import os
 import re
+import pandas as pd
 
 def last_row(sheet):
     """
@@ -21,9 +22,9 @@ def extract_name(file: str) -> tuple[str, str, str]:
     bank, month, year = names[0].split('/')[1], names[1], names[2]
     return bank, month, year
 
-def get_privous_year(year) -> list[str]:
+def privous_year_from_self(year) -> list[str]:
     """
-    Gets last known year before
+    Gets last known year from starting year
     """
     xlsx_files = os.listdir('finance/')
 
@@ -41,9 +42,9 @@ def get_privous_year(year) -> list[str]:
         return 0
     return closes_year
 
-def remove_memos(memo_json: dict, key: str) -> tuple[str, str]:
+def category_memos(memo_json: dict, key: str) -> tuple[str, str]:
     """
-    Memos that should be in sheets converted to simply categories (e.g. Food, Housing)
+    Memos converted to catergories from the memo.json file (e.g. Food, Housing)
 
     Parameters:
     ----------
@@ -63,3 +64,23 @@ def remove_memos(memo_json: dict, key: str) -> tuple[str, str]:
                     return memo_category, memo_json[memo_category]['colour']
 
     return key, "ffffff" #ffffff
+
+def check_empty_data(data: pd.DataFrame) -> bool:
+    """
+    Checks if dataframe is empty
+    """
+    if data.empty:
+        print('❗️ Empty, nothing to add')
+        return True
+    return False
+
+def closest_month_from_self(month: str, sheets:list[str]) -> str|None:
+    """
+    Finds the closest month from the starting month
+    """
+    closest_month: str = None
+    for target_month in sheets:
+        if int(month) < int(target_month):
+            if not closest_month or int(target_month) < int(closest_month):
+                closest_month = target_month
+    return closest_month

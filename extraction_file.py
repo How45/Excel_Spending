@@ -6,7 +6,7 @@ import json
 import pandas as pd
 from openpyxl import load_workbook, Workbook
 from openpyxl.cell.cell import Cell
-from extract_info import get_privous_year, remove_memos, last_row
+import extract_info as extract
 from clean_sheet import clean_cells
 
 STARTING_VALUE: int = 11774.72
@@ -14,13 +14,13 @@ class FinanacialManager:
     """
     Deals with cleaning of statements and puts them in sheets
     """
-    def __init__(self, bank, year, month):
+    def __init__(self, bank, year, month) -> None:
         self.bank:str = bank
         self.year:str = year
         self.month:str = month
         self.output_file:str = f'finance/{year}.xlsx'
 
-    def check_existing_bank(self):
+    def check_existing_bank(self) -> bool:
         """
         Checks if theres already the name of the bank in the month of that yearg
         """
@@ -36,7 +36,7 @@ class FinanacialManager:
             bank_operations = json.load(f)
 
         bank_info = bank_operations.get(self.bank)
-        if bank_info is None:
+        if not bank_info:
             raise KeyError(f'No banks under {self.bank} found')
 
         data = pd.read_csv(statement)
@@ -54,9 +54,8 @@ class FinanacialManager:
 
         amounts, memos, colours, dates = [], [], [], []
         for index, key in enumerate(memo):
-            # Checks if item is not in remove_memo
             if key.lower() not in [x.lower() for x in bank_info['remove_memo']]:
-                type_memo, colour = remove_memos(memo_json, key)
+                type_memo, colour = extract.category_memos(memo_json, key)
 
                 if colour == "ffffff":
                     print(f'❌ You need to add {type_memo} to json file')
@@ -66,7 +65,7 @@ class FinanacialManager:
                 colours.append(colour)
                 amounts.append(amount[index])
 
-        last_total_cell = self.get_last_total_cell()
+        last_total_cell = self.last_cell_amount()
 
         return self.to_dataframe(amounts, memos, last_total_cell, colours, dates)
 
@@ -106,64 +105,68 @@ class FinanacialManager:
         else:
             raise ValueError('No files found')
 
-    def update_sheets(self):
+    def update_sheets(self) -> None:
         """
-        Checks and updates any needs in the workbook or in workbooks head of the one being created
+        Reformats sheets/workbooks infront of it like referencing the last_cell_amount
         """
 
         fiance_workbooks: list[str] = os.listdir(path='finance/')
-        closest_month: int = None
-        closest_year: int = None
+        years_ahead: list[str] = [files.split('.')[0] for files in fiance_workbooks if int(files.split('.')[0]) >= int(self.year)]
+        closest_month: str = None
+        closest_year: str = None
 
-        try:
-            for file in fiance_workbooks:
-                fiance_year = file.split('.')[0]
+        if self.month == "12":
+            try:
+                closest_year = years_ahead[1]
+                workbook = load_workbook(f'finance/{closest_year}.xlsx')
+                workbook_sheets: list[str] = workbook.sheetnames
+                workbook.close()
 
-                if int(fiance_year) >= int(self.year):
-                    if closest_year is None or int(fiance_year) < closest_year:
-                        closest_year = int(fiance_year)
+                workbook_sheets.sort()
+                closest_month = workbook_sheets[0]
+            except IndexError:
+                # Should be because no year has been created ahead of it
+                # This is in the case where you are adding new files in order
+                pass
 
-            workbook = load_workbook(f'finance/{closest_year}.xlsx')
-            workbook_sheets = workbook.sheetnames
+        else:
+            for pointer_year in years_ahead:
+                workbook = load_workbook(f'finance/{pointer_year}.xlsx')
+                workbook_sheets = workbook.sheetnames
+                workbook.close()
 
-            for sheet in workbook_sheets:
-                if int(sheet) > int(self.month):
-                    if closest_month is None or int(sheet) < closest_month:
-                        closest_month = int(sheet)
-            workbook.close()
+                closest_month = extract.closest_month_from_self(self.month, workbook_sheets)
+                if closest_month:
+                    closest_year = pointer_year
+                    break
 
-            if closest_month and closest_year:
+        if closest_month and closest_year:
                 self.update_first_line(closest_month, closest_year)
-            else:
-                print(f"❌ Nothing to update -> {self.month}/{self.year}")
+        else:
+            print(f"❌ Nothing to update -> {self.month}/{self.year}")
 
-        except (ValueError):
-            print("❌ Nothing above it")
-
-    def update_first_line(self, closest_month: int, closest_year: int) -> None:
+    def update_first_line(self, page_no: str, closest_year: str) -> None:
         """
         Updates the closest workbook top row, linking to new last row
         """
-        current_total_cell = self.get_last_total_cell()
+        current_total_cell = self.last_cell_amount()
 
         workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
-        page_no: str = '0'+str(closest_month) if closest_month < 10 else str(closest_month)
         sheet = workbook[page_no]
 
-        # If in the same workbook, reference sheet (month)
+        # MIGHT NOT NEED THIS V
         if not current_total_cell[1]:
             function_total = f"=SUM(D2,{STARTING_VALUE})"
 
         elif current_total_cell[1] == f'finance/{closest_year}.xlsx':
             function_total = f"=SUM(D2,'{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
-        # ref last_year
         else:
             path_year = os.path.abspath(current_total_cell[1]).replace("\\","/")
             function_total = f"=SUM(D2,'file:///[{path_year}]{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
         sheet.cell(row=2,column=5).value = function_total
-        workbook.save(f'finance/{self.year}.xlsx')
+        workbook.save(f'finance/{closest_year}.xlsx')
         workbook.close()
 
     def to_dataframe(self, amounts: list[int], memos: list[str],
@@ -205,12 +208,12 @@ class FinanacialManager:
             iteration += 1
         return df
 
-    def get_last_total_cell(self) -> tuple[Cell|None, str|None, str|None]:
+    def last_cell_amount(self) -> tuple[Cell|None, str|None, str|None]:
         """
-        Retrieves last total from file (checks current year or previous year)
+        Retrieves the last cell closest to current month/year. First month then year.
         """
         # If the year before exits
-        year_before_dir: str = f'finance/{get_privous_year(self.year)}.xlsx'
+        year_before_dir: str = f'finance/{extract.privous_year_from_self(self.year)}.xlsx'
 
         # This year
         if os.path.exists(self.output_file):
@@ -221,7 +224,7 @@ class FinanacialManager:
             if self.month in sheets:
                 sheet = workbook[self.month]
 
-                last_cell = last_row(sheet)
+                last_cell = extract.last_row(sheet)
                 workbook.close()
                 return (last_cell,self.output_file, self.month)
 
@@ -234,7 +237,7 @@ class FinanacialManager:
                 print('❗️ no privous month found')
                 return (STARTING_VALUE, None, None)
 
-            last_cell = last_row(sheet)
+            last_cell = extract.last_row(sheet)
             workbook.close()
             return (last_cell, self.output_file, privious_month)
 
@@ -247,7 +250,7 @@ class FinanacialManager:
                 sheet_str = sheets[-1]
                 sheet = workbook[sheet_str]
                 # Gets the last month in that year, returing last total of that month
-                last_cell = last_row(sheet)
+                last_cell = extract.last_row(sheet)
                 workbook.close()
                 return (last_cell, year_before_dir, sheet_str)
             except ValueError as val_error:
@@ -280,7 +283,7 @@ class FinanacialManager:
         cell_value : int
             A starting value or 0 if no value is provided.
         cell_coordinate : str
-            The cell coordinate indicating where the total is located (e.g., 'E2', 'E36').
+            The cell coordinate indicating where the total is located (e.g. 'E2', 'E36').
         """
         # First time creating a worbook ever
         if last_year is None:

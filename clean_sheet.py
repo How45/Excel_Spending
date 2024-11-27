@@ -5,7 +5,7 @@ import json
 from icecream import ic
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font, Alignment
-from extract_info import memo_extraction
+from extract_info import category_memos
 
 
 def clean_cells(output_file:str, month:str, given_idx: int) -> None:
@@ -92,7 +92,7 @@ def clean_year(file: str) -> None:
         # Start at first cell (execel is a start base of 1 and the first row is the column names)
         for idx, row in enumerate(month.iter_rows(min_row=2, values_only=True)):
             if not row[2] in avoid_memos:
-                category, hex_color = memo_extraction(memo_file, row[2])
+                category, hex_color = category_memos(memo_file, row[2])
 
                 if hex_color != "ffffff":
                     cell_colour = month[idx+2][1] # Colour, cell value

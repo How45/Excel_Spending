@@ -3,7 +3,7 @@ Os managment, helper function, extraction stuff
 """
 import os
 import extraction_file as ef
-from extract_info import extract_name
+from extract_info import extract_name, check_empty_data
 from clean_sheet import clean_year
 
 def main():
@@ -15,13 +15,13 @@ def main():
                               key=lambda x: (int(x.split('_')[-1].split('.')[0]), int(x.split('_')[-2]))
                               )
     for file_name in sorted_statement:
-        # file_name = 'statements/TestA_11_2023.csv'
         bank, month, year = extract_name(file_name.split('.')[0])
 
         statement = ef.FinanacialManager(bank, year, month)
         data = statement.clean(file_name)
-        statement.tally_account(data)
-        statement.update_sheets()
+        if not check_empty_data(data):
+            statement.tally_account(data)
+            statement.update_sheets()
 
 def clean_through():
     """
