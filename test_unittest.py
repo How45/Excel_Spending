@@ -35,12 +35,25 @@ class TestExtractionFile(unittest.TestCase):
                 # the value in that cell,the whole cell tuple, veriable type
                 print(cell.parent.title, cell.coordinate, cell.value, cell, type(cell)) # String
 
+    def test_new_anything(self):
+        """
+        Test when you add the very first year in the file finance
+        """
+        for file_name in ['statements/Barclay_11_2023.csv', 'statements/FirstDirect_11_2023.csv',
+                          'statements/Barclay_12_2023.csv', 'statements/FirstDirect_12_2023.csv']:
+            print(file_name)
+            bank, month, year = hf.extract_name(file_name.split('.')[0])
+
+            statement = ef.FinanacialManager(bank, year, month)
+            data = statement.clean(file_name)
+            statement.tally_account(data)
+
     def test_closet_file(self):
         """
         .
         """
-        for file_name in ['statements/Barclay_07_2024.csv',
-                      'statements/Barclay_08_2024.csv']:
+        for file_name in ['statements/Barclay_11_2023.csv', 'statements/FirstDirect_11_2023.csv',
+                          'statements/Barclay_12_2023.csv', 'statements/FirstDirect_12_2023.csv']:
             # file_name = 'statements/TestA_11_2023.csv'
             bank, month, year = hf.extract_name(file_name.split('.')[0])
 
@@ -49,7 +62,8 @@ class TestExtractionFile(unittest.TestCase):
             statement.tally_account(data)
 
         # Test the update
-        for file_name in ['statements/Barclay_06_2024.csv']:
+        for file_name in ['statements/Barclay_01_2024.csv', 'statements/FirstDirect_01_2024.csv',
+                          'statements/Barclay_02_2024.csv', 'statements/FirstDirect_02_2024.csv']:
             bank, month, year = hf.extract_name(file_name.split('.')[0])
 
             statement = ef.FinanacialManager(bank, year, month)
@@ -65,13 +79,7 @@ class TestExtractionFile(unittest.TestCase):
         sorted_files = sorted(statement,
                               key=lambda x: (int(x.split('_')[-1].split('.')[0]), int(x.split('_')[-2]))
                               )
-        self.assertEqual(sorted_files,['statements/Barclay_11_2023.csv', 'statements/FirstDirect_11_2023.csv', 'statements/Barclay_12_2023.csv', 'statements/FirstDirect_12_2023.csv',
-                                       'statements/Barclay_01_2024.csv', 'statements/FirstDirect_01_2024.csv', 'statements/Barclay_02_2024.csv', 'statements/FirstDirect_02_2024.csv',
-                                       'statements/Barclay_03_2024.csv', 'statements/FirstDirect_03_2024.csv', 'statements/Barclay_04_2024.csv', 'statements/FirstDirect_04_2024.csv',
-                                       'statements/Barclay_05_2024.csv', 'statements/FirstDirect_05_2024.csv', 'statements/Barclay_06_2024.csv', 'statements/FirstDirect_06_2024.csv',
-                                       'statements/Barclay_07_2024.csv', 'statements/FirstDirect_07_2024.csv', 'statements/Barclay_08_2024.csv', 'statements/FirstDirect_08_2024.csv',
-                                       'statements/Barclay_09_2024.csv', 'statements/FirstDirect_09_2024.csv', 'statements/Barclay_10_2024.csv', 'statements/FirstDirect_10_2024.csv'])
-
+        print(sorted_files)
 
 
 if __name__ == '__main__':

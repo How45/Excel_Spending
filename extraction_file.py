@@ -5,10 +5,10 @@ import os
 import json
 from zipfile import BadZipfile
 import pandas as pd
-from openpyxl import load_workbook
+from openpyxl import load_workbook, Workbook
 from openpyxl.cell.cell import Cell
 from icecream import ic
-from extract_info import get_privous_year, memo_extraction
+from extract_info import get_privous_year, memo_extraction, last_row
 from clean_sheet import clean_cells
 
 STARTING_VALUE: int = 11774.72
@@ -149,7 +149,8 @@ class FinanacialManager:
         current_total_cell = self.get_last_total_cell()
 
         workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
-        sheet = workbook["0"+str(closest_month)]
+        page_no: str = '0'+str(closest_month) if closest_month < 10 else str(closest_month)
+        sheet = workbook[page_no]
 
         # If in the same year workbook, just reference sheet month
         if not current_total_cell[1]:
@@ -161,7 +162,7 @@ class FinanacialManager:
         # If in diff year workbook, closes_year ahead of current_workbook needs to reference current_workbook
         else:
             path_year = os.path.abspath(current_total_cell[1]).replace("\\","/")
-            function_total = f"=SUM(D2,'file:///[{path_year}]''{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
+            function_total = f"=SUM(D2,'file:///[{path_year}]{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
         sheet.cell(row=2,column=5).value = function_total
         workbook.save(f'finance/{self.year}.xlsx')
@@ -226,59 +227,53 @@ class FinanacialManager:
         Retrieves last total from file (checks current year or previous year)
         """
         # If the year before exits
-        year_before = f'finance/{get_privous_year(self.year)}.xlsx'
+        year_before_dir: str = f'finance/{get_privous_year(self.year)}.xlsx'
 
-        # If year exists
+        # This year
         if os.path.exists(self.output_file):
-            workbook = load_workbook(filename=self.output_file)
-            sheets = workbook.sheetnames
+            workbook: Workbook = load_workbook(filename=self.output_file)
+            sheets: list[str] = workbook.sheetnames
 
-            # gets current month
+            # Current month
             if self.month in sheets:
                 sheet = workbook[self.month]
 
-                for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
-                                           min_col= 5, max_col= 5, values_only=False):
-                    for cell in row:
-                        workbook.close()
-                        return (cell, self.output_file, self.month)
+                last_cell = last_row(sheet)
+                workbook.close()
+                return (last_cell,self.output_file, self.month)
 
-            privious_month: str = '0'+str(int(self.month)-1)
+            privious_month: str = '0'+str(int(self.month)-1) if int(self.month)-1 < 10 else str(int(self.month)-1)
+
+            # Privious month
             if privious_month in sheets:
                 sheet = workbook[privious_month]
             else:
+                print('❗️ no privous month found')
                 return (STARTING_VALUE, None, None)
 
-            for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
-                                           min_col= 5, max_col= 5, values_only=False):
-                # Reading content of cell
-                for cell in row:
-                    workbook.close()
-                    return (cell, self.output_file, privious_month)
+            last_cell = last_row(sheet)
+            workbook.close()
+            return (last_cell, self.output_file, privious_month)
 
-        # Gets the last month of the year before
-        elif os.path.exists(year_before):
-            workbook = load_workbook(filename=year_before)
+        # Last Year
+        elif os.path.exists(year_before_dir):
+            workbook = load_workbook(filename=year_before_dir)
             sheets = workbook.sheetnames
 
             try:
-                # List of all sheets of workbook, then loads sheet
                 sheet_str = sheets[-1]
                 sheet = workbook[sheet_str]
                 # Gets the last month in that year, returing last total of that month
-                for row in sheet.iter_rows(min_row=sheet.max_row-1, max_row=sheet.max_row-1,
-                                            min_col= 5, max_col= 5, values_only=False):
-                    # Reading content of cell
-                    for cell in row:
-                        workbook.close()
-                        return (cell, year_before, sheet_str)
+                last_cell = last_row(sheet)
+                workbook.close()
+                return (last_cell, year_before_dir, sheet_str)
             except ValueError as val_error:
                 print(f"❌ {val_error}")
 
-        else: # For very first statement
-            print('❗️ no privous month or year has been found')
+        # None
+        else:
+            print('❗️ no privous year has been found')
             return (STARTING_VALUE, None, None)
-            # raise ValueError('Error: no privous month or year has been found')
 
     def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
                      cell_value: int, cell_coordinate: str) -> str:
@@ -321,11 +316,12 @@ class FinanacialManager:
             # Different Month in workbook
             # Function is the SUM of amount with the month.cell_of_last_total (LibreOffice)
             else:
-                function_total = f"=SUM(D2,$'{last_month}'!{cell_coordinate})"
+                function_total = f"=SUM(D2,'{last_month}'!{cell_coordinate})"
 
         # Different Year (LibreOffice VERSION ONLY) path#$month.cell_of_last_total<----
         else:
             path_year = os.path.abspath(last_year).replace("\\","/")
-            function_total = f"=SUM(D2,'file:///[{path_year}]''{last_month}'!{cell_coordinate})"
+
+            function_total = f"=SUM(D2,'file:///[{path_year}]{last_month}'!{cell_coordinate})"
 
         return function_total, iteration

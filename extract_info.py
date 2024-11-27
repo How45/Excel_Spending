@@ -4,6 +4,15 @@ Helper functions
 import os
 import re
 
+def last_row(sheet):
+    """
+    Gets last row of chosen sheet (e.g month) and year
+    """
+    for row in sheet.iter_rows(min_row=sheet.max_row, max_row=sheet.max_row,
+                                           min_col= 5, max_col= 5, values_only=False):
+        for cell in row:
+            return cell
+
 def extract_name(file: str) -> tuple[str, str, str]:
     """
     Extract name of file
