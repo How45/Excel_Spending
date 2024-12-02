@@ -4,6 +4,7 @@
 import unittest
 import extract_info as extract
 import extraction_file as ef
+import pandas as pd
 from openpyxl import load_workbook
 import os
 
@@ -37,7 +38,7 @@ class TestExtractionFile(unittest.TestCase):
         sorted_files = sorted(statement,
                               key=lambda x: (int(x.split('_')[-1].split('.')[0]), int(x.split('_')[-2]))
                               )
-        print(sorted_files)
+
 
     def test_missing_month(self) -> None:
         """
@@ -91,6 +92,35 @@ class TestExtractionFile(unittest.TestCase):
             statement.tally_account(data)
             statement.update_sheets()
 
+    def test_check_bank_exists(self):
+        """
+        Test -> If the bank thats being inputed into a existsing month/year exists or not
+        """
+        file_name: str = 'statements/FirstDirect_06_2024.csv'
+        bank, month, year = extract.extract_name(file_name.split('.')[0])
+        statement = ef.FinanacialManager(bank, year, month)
+
+        df = pd.read_excel(f'finance/{year}.xlsx', sheet_name=month)
+        unittest_check = bank in df['Bank'].values
+
+        assert statement.check_existing_bank() == unittest_check, f'Bank values: {df['Bank'].values}'
+
+    def test_read_all_files(self):
+        """
+        Test -> If all files are reable from pandas
+        """
+        statement = [f'statements/{file}' for file in os.listdir('statements/')]
+        sorted_files = sorted(statement,
+                              key=lambda x: (int(x.split('_')[-1].split('.')[0]), int(x.split('_')[-2]))
+                              )
+        for i in sorted_files:
+            try:
+                pd.read_csv(i)
+                print(f'👉 Able to read file {i}')
+            except pd.errors.ParserError as e:
+                print(f"""❗️ {i} <--- File issue
+Check lines of file: {e}
+                    """)
 
 if __name__ == '__main__':
     unittest.main()

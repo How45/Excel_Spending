@@ -24,7 +24,7 @@ class FinanacialManager:
         """
         Checks if theres already the name of the bank in the month of that yearg
         """
-        df = pd.read_excel(self.output_file)
+        df = pd.read_excel(self.output_file, sheet_name=self.month)
         return self.bank in df['Bank'].values
 
     # Needs to be re-done (normalise so it can gt all data)
@@ -82,7 +82,6 @@ class FinanacialManager:
             sheets = workbook.sheetnames
 
             if self.month in sheets:
-
                 if not self.check_existing_bank():
                     sheet = workbook[self.month]
                     last_row = sheet.max_row
