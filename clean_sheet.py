@@ -77,9 +77,10 @@ def clean_year(file: str) -> None:
     Goes through file (year) and cleans any missing memo changes. Will also change the colour.
     Output is printing in terminal for any missing memos that haven't been added in JSON file.
 
-    The function will:
-    - Go through a finance file (i.e. 2024.xlsx)
-    - Read memo.json
+    The function clean any file in finance folder, by:
+    - Opening file from finance folder
+    - Reading memo.json
+    - Editing file from finance folder
     """
 
     with open('memo.json', 'r', encoding='utf-8') as f:
@@ -88,11 +89,9 @@ def clean_year(file: str) -> None:
 
     avoid_memos = list(memo_file.keys())
     for month in workbook:
-
-        # Start at first cell (execel is a start base of 1 and the first row is the column names)
         for idx, row in enumerate(month.iter_rows(min_row=2, values_only=True)):
             if not row[2] in avoid_memos:
-                category, hex_color = category_memos(memo_file, row[2])
+                type_memo, hex_color = category_memos(memo_file, row[2])
 
                 if hex_color != "ffffff":
                     cell_colour = month[idx+2][1] # Colour, cell value
@@ -100,7 +99,9 @@ def clean_year(file: str) -> None:
 
                     fill = PatternFill(start_color=hex_color, end_color=hex_color, fill_type="solid")
                     cell_colour.fill = fill
-                    cell_category.value = category
+                    cell_category.value = type_memo
+                else:
+                    print(f'❌ You need to add {type_memo} to json file')
 
     # Save the workbook
     workbook.save(file)

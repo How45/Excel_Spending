@@ -56,12 +56,11 @@ def category_memos(memo_json: dict, key: str) -> tuple[str, str]:
 
     for memo_category in memo_json:
         for m in memo_json[memo_category]['memos']:
-            try:
-                if bool(re.match(m.lower(),key.lower())):
-                    return memo_category, memo_json[memo_category]['colour']
-            except re.error:
-                if m.lower() in key.lower():
-                    return memo_category, memo_json[memo_category]['colour']
+
+            if bool(re.match(m,key,re.IGNORECASE)):
+                return memo_category, memo_json[memo_category]['colour']
+            if m.lower() in key.lower():
+                return memo_category, memo_json[memo_category]['colour']
 
     return key, "ffffff" #ffffff
 

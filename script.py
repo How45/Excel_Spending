@@ -29,11 +29,9 @@ def clean_through():
     e.g. Adds colour and proper naming convention to columns
     """
     files = [f'finance/{file}' for file in os.listdir('finance/')]
-    print(files)
 
     for year in files:
         clean_year(year)
-        # | Work in progress |
 
 
 if __name__ == "__main__":
