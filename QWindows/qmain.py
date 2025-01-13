@@ -33,6 +33,7 @@ class MainWindow(QWidget):
     def open_create(self):
         self.create_window = QTcreate()
         self.create_window.show()
+        self.close()
 
     def open_load(self):
         self.create_window = QTload()
