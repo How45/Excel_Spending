@@ -2,5 +2,6 @@
   "python.testing.pytestEnabled": false,
   "python.testing.unittestEnabled": true,
   "python.testing.unittestArgs": ["-v", "-s", ".", "-p", "test_*.py"],
-  "python.analysis.typeCheckingMode": "off"
+  "python.analysis.typeCheckingMode": "off",
+  "cSpell.words": ["colours", "infront", "privious"]
 }

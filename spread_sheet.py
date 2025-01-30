@@ -15,16 +15,16 @@ class GraphData():
 
     def pie_expenses(self) -> None:
         """
-        Pie chart of each catergorie expenses
+        Pie chart of each categories expenses
         """
-        sum_caterogise = self.data.groupby('What?')['Income/Spending'].sum()
+        sum_category = self.data.groupby('What?')['Income/Spending'].sum()
 
         unique_colours = self.data.groupby('What?')['Colour'].unique().tolist()
         colours = [list(map(int, item[0].split(','))) for item in unique_colours]
         colours = [(r/255, g/255, b/255) for r, g, b in colours]
 
-        amounts = [x*-1 if x < 0 else x for x in sum_caterogise]
-        categories = list(sum_caterogise.keys())
+        amounts = [x*-1 if x < 0 else x for x in sum_category]
+        categories = list(sum_category.keys())
 
         plt.pie(np.array(amounts), labels=categories, startangle=90, colors=colours)
         plt.title('Expense Distribution')
@@ -41,9 +41,9 @@ class GraphData():
         plt.title('Change of total')
         plt.show()
 
-    def catergorie_line(self) -> None:
+    def category_line(self) -> None:
         """
-        Catergories expensise as line chart
+        Categories expenses as line chart
         """
         unique_colours = self.data.groupby('What?')['Colour'].unique().tolist()
         colours = [list(map(int, item[0].split(','))) for item in unique_colours]
@@ -71,7 +71,7 @@ def main():
     gd = GraphData(df)
     # gd.pie_expenses()
     # gd.line_total()
-    gd.catergorie_line()
+    gd.category_line()
 
 if __name__ == "__main__":
     main()

@@ -42,24 +42,24 @@ class TestExtractionFile(unittest.TestCase):
 
     def test_missing_month(self) -> None:
         """
-        Test -> when a new month is added, the cloeset statement it can update is the neart month of the same year
+        Test -> when a new month is added, the closest statement it can update is the nearest month of the same year
         """
         for file_name in ['statements/FirstDirect_03_2024.csv', 'statements/Barclay_04_2024.csv',
                           'statements/FirstDirect_04_2024.csv']:
 
             bank, month, year = extract.extract_name(file_name.split('.')[0])
 
-            statement = ef.FinanacialManager(bank, year, month)
+            statement = ef.FinancialManager(bank, year, month)
             data = statement.clean(file_name)
 
             if not extract.check_empty_data(data):
                 statement.tally_account(data)
 
-        # new month added inbetween to update next years
+        # new month added in between to update next years
         file_name: str = 'statements/Barclay_03_2024.csv'
         bank, month, year = extract.extract_name(file_name.split('.')[0])
 
-        statement = ef.FinanacialManager(bank, year, month)
+        statement = ef.FinancialManager(bank, year, month)
         data = statement.clean(file_name)
 
         if not extract.check_empty_data(data):
@@ -68,24 +68,24 @@ class TestExtractionFile(unittest.TestCase):
 
     def test_missing_month_next_year(self):
         """
-        Test -> when a new month is added, the cloeset statement it can update it next year
+        Test -> when a new month is added, the closest statement it can update it next year
         """
         for file_name in ['statements/Barclay_11_2023.csv', 'statements/FirstDirect_11_2023.csv',
                           'statements/FirstDirect_12_2023.csv', 'statements/Barclay_01_2024.csv']:
 
             bank, month, year = extract.extract_name(file_name.split('.')[0])
 
-            statement = ef.FinanacialManager(bank, year, month)
+            statement = ef.FinancialManager(bank, year, month)
             data = statement.clean(file_name)
 
             if not extract.check_empty_data(data):
                 statement.tally_account(data)
 
-        # new month added inbetween to update next years
+        # new month added in between to update next years
         file_name: str = 'statements/Barclay_12_2023.csv'
         bank, month, year = extract.extract_name(file_name.split('.')[0])
 
-        statement = ef.FinanacialManager(bank, year, month)
+        statement = ef.FinancialManager(bank, year, month)
         data = statement.clean(file_name)
 
         if not extract.check_empty_data(data):
@@ -94,11 +94,11 @@ class TestExtractionFile(unittest.TestCase):
 
     def test_check_bank_exists(self):
         """
-        Test -> If the bank thats being inputed into a existsing month/year exists or not
+        Test -> If the bank that's being inputted into a existing month/year exists or not
         """
         file_name: str = 'statements/FirstDirect_06_2024.csv'
         bank, month, year = extract.extract_name(file_name.split('.')[0])
-        statement = ef.FinanacialManager(bank, year, month)
+        statement = ef.FinancialManager(bank, year, month)
 
         df = pd.read_excel(f'finance/{year}.xlsx', sheet_name=month)
         unittest_check = bank in df['Bank'].values
@@ -107,7 +107,7 @@ class TestExtractionFile(unittest.TestCase):
 
     def test_read_all_files(self):
         """
-        Test -> If all files are reable from pandas
+        Test -> If all files are readable from pandas
         """
         statement = [f'statements/{file}' for file in os.listdir('statements/')]
         sorted_files = sorted(statement,

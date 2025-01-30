@@ -10,7 +10,7 @@ import extract_info as extract
 from clean_sheet import clean_cells
 
 STARTING_VALUE: int = 11774.72
-class FinanacialManager:
+class FinancialManager:
     """
     Deals with cleaning of statements and puts them in sheets
     """
@@ -22,7 +22,7 @@ class FinanacialManager:
 
     def check_existing_bank(self) -> bool:
         """
-        Checks if theres already the name of the bank in the month of that yearg
+        Checks if there's already the name of the bank in the month of that year
         """
         df = pd.read_excel(self.output_file, sheet_name=self.month)
         return self.bank in df['Bank'].values
@@ -41,7 +41,7 @@ class FinanacialManager:
 
         data = pd.read_csv(statement)
 
-        # Change up if theres null values ATM banks i've used don't
+        # Change up if there.s null values ATM banks i've used don't
         amount = data[bank_info['amount_column']].tolist()
         date = data[bank_info['Dates']].tolist()
 
@@ -212,7 +212,7 @@ class FinanacialManager:
         Retrieves the last cell closest to current month/year. First month then year.
         """
         # If the year before exits
-        year_before_dir: str = f'finance/{extract.privous_year_from_self(self.year)}.xlsx'
+        year_before_dir: str = f'finance/{extract.privious_year_from_self(self.year)}.xlsx'
 
         # This year
         if os.path.exists(self.output_file):
@@ -233,7 +233,7 @@ class FinanacialManager:
             if privious_month in sheets:
                 sheet = workbook[privious_month]
             else:
-                print('❗️ no privous month found')
+                print('❗️ no privious month found')
                 return (STARTING_VALUE, None, None)
 
             last_cell = extract.last_row(sheet)
@@ -248,7 +248,7 @@ class FinanacialManager:
             try:
                 sheet_str = sheets[-1]
                 sheet = workbook[sheet_str]
-                # Gets the last month in that year, returing last total of that month
+                # Gets the last month in that year, returning last total of that month
                 last_cell = extract.last_row(sheet)
                 workbook.close()
                 return (last_cell, year_before_dir, sheet_str)
@@ -257,7 +257,7 @@ class FinanacialManager:
 
         # None
         else:
-            print('❗️ no privous year has been found')
+            print('❗️ no privious year has been found')
             return (STARTING_VALUE, None, None)
 
     def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
@@ -284,7 +284,7 @@ class FinanacialManager:
         cell_coordinate : str
             The cell coordinate indicating where the total is located (e.g. 'E2', 'E36').
         """
-        # First time creating a worbook ever
+        # First time creating a workbook ever
         if last_year is None:
             function_total = f'=SUM(D2,{cell_value})'
 
@@ -296,7 +296,7 @@ class FinanacialManager:
                 function_total = f"=SUM(D{int(cell_coordinate[1:])+1},{cell_coordinate})"
                 iteration += 1
 
-            # Different Month in Wrkbook
+            # Different Month in Workbook
             else:
                 function_total = f"=SUM(D2,'{last_month}'!{cell_coordinate})"
 

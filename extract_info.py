@@ -22,7 +22,7 @@ def extract_name(file: str) -> tuple[str, str, str]:
     bank, month, year = names[0].split('/')[1], names[1], names[2]
     return bank, month, year
 
-def privous_year_from_self(year) -> list[str]:
+def privious_year_from_self(year) -> list[str]:
     """
     Gets last known year from starting year
     """
@@ -44,12 +44,12 @@ def privous_year_from_self(year) -> list[str]:
 
 def category_memos(memo_json: dict, key: str) -> tuple[str, str]:
     """
-    Memos converted to catergories from the memo.json file (e.g. Food, Housing)
+    Memos converted to categories from the memo.json file (e.g. Food, Housing)
 
     Parameters:
     ----------
     memo_json : dict
-        This is the memo.json file in that is opened and stored in a veriable
+        This is the memo.json file in that is opened and stored in a variable
     key : str
         The key is the memo in the bank statement that needs to be matched with a category in the memo.json
     """
