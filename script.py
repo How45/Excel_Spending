@@ -1,5 +1,5 @@
 """
-Os managment, helper function, extraction stuff
+Os management, helper function, extraction stuff
 """
 import os
 import extraction_file as ef
@@ -17,7 +17,7 @@ def main():
     for file_name in sorted_statement:
         bank, month, year = extract_name(file_name.split('.')[0])
 
-        statement = ef.FinanacialManager(bank, year, month)
+        statement = ef.FinanacialManager(bank, year, month, 'memo.json')
         data = statement.clean(file_name)
         if not check_empty_data(data):
             statement.tally_account(data)
