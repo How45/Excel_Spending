@@ -44,7 +44,7 @@ class QTcreate(QWidget):
         inner_layout.setSpacing(5)
 
         # Text naming file field
-        name_folder = QLineEdit('Folder Name')
+        self.name_folder = QLineEdit('Folder Name')
         inner_layout.addWidget(name_folder)
 
 
@@ -79,8 +79,8 @@ class QTcreate(QWidget):
 
         inner_layout.addSpacing(20)
 
-        name_file = QLineEdit('Excelsheet Name')
-        inner_layout.addWidget(name_file)
+        self.name_file = QLineEdit('Excelsheet Name')
+        inner_layout.addWidget(self.name_file)
 
         create_sheet = QPushButton('Create')
         inner_layout.addWidget(create_sheet)
@@ -88,6 +88,7 @@ class QTcreate(QWidget):
         add_button.clicked.connect(self.adding_files)
         add_json_button.clicked.connect(self.adding_json)
         create_json_button.clicked.connect(self.creating_json)
+        create_sheet.clicked.connect(self.accept)
 
 
     def adding_files(self) -> None:
@@ -135,3 +136,6 @@ class QTcreate(QWidget):
             self.json_list_files.addRow(file_label)
         else:
             print("❗️Can't have more then one file")
+
+    def finish_button(self) -> None:
+        return (self.statement_files,self.json_files, self.name_file)
