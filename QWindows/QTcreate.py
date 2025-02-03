@@ -3,6 +3,8 @@ from PyQt6.QtWidgets import (
     QGroupBox, QLineEdit, QPushButton, QWidget, QFileDialog, QLabel, QDialog
 )
 
+from PyQt6.QtCore import pyqtSignal
+
 import os
 import shutil
 class NewMemo(QDialog):
@@ -26,6 +28,8 @@ class NewMemo(QDialog):
                 return self.name_memo.text()
 
 class QTcreate(QWidget):
+    data_sent = pyqtSignal(list, list, str)
+
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Create New Spreadsheet")
@@ -45,7 +49,7 @@ class QTcreate(QWidget):
 
         # Text naming file field
         self.name_folder = QLineEdit('Folder Name')
-        inner_layout.addWidget(name_folder)
+        inner_layout.addWidget(self.name_folder)
 
 
 # / ----------------------------------------- /
@@ -88,7 +92,7 @@ class QTcreate(QWidget):
         add_button.clicked.connect(self.adding_files)
         add_json_button.clicked.connect(self.adding_json)
         create_json_button.clicked.connect(self.creating_json)
-        create_sheet.clicked.connect(self.accept)
+        create_sheet.clicked.connect(self.send_data)
 
 
     def adding_files(self) -> None:
@@ -137,5 +141,6 @@ class QTcreate(QWidget):
         else:
             print("❗️Can't have more then one file")
 
-    def finish_button(self) -> None:
-        return (self.statement_files,self.json_files, self.name_file)
+    def send_data(self) -> None:
+        self.data_sent.emit(self.statement_files, self.json_files, self.name_file.text())
+        self.close()

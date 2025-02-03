@@ -3,6 +3,8 @@ from QWindows.QTcreate import QTcreate
 from QWindows.QTload import QTload
 from QWindows.QTupdate import QTupdate
 
+
+import os
 class MainWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
@@ -32,8 +34,15 @@ class MainWindow(QWidget):
 
     def open_create(self):
         self.create_window = QTcreate()
+        self.create_window.data_sent.connect(self.receive_data)
         self.create_window.show()
-        self.close()
+
+    def receive_data(self, statement_files, json_files, file_name):
+        print("Received Data:")
+        print("Statement Files:", statement_files)
+        print("JSON Files:", json_files)
+        print("File Name:", file_name)
+        # File path root
 
     def open_load(self):
         self.create_window = QTload()
