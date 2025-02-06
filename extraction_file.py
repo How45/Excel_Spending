@@ -14,11 +14,12 @@ class FinancialManager:
     """
     Deals with cleaning of statements and puts them in sheets
     """
-    def __init__(self, bank, year, month) -> None:
+    def __init__(self, bank, year, month, memo_file) -> None:
         self.bank:str = bank
         self.year:str = year
         self.month:str = month
         self.output_file:str = f'finance/{year}.xlsx'
+        self.memo_file = memo_file
 
     def check_existing_bank(self) -> bool:
         """
@@ -49,7 +50,7 @@ class FinancialManager:
                 for name in data[bank_info['memo_column']].tolist()]
 
         # Removes any amount and memo
-        with open('memo.json', 'r', encoding='utf-8') as f:
+        with open(self.memo_file, 'r', encoding='utf-8') as f:
             memo_json = json.load(f)
 
         amounts, memos, colours, dates = [], [], [], []

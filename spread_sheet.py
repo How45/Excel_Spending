@@ -43,7 +43,11 @@ class GraphData():
 
     def category_line(self) -> None:
         """
+<<<<<<< HEAD
         Categories expenses as line chart
+=======
+        Categories expensise as line chart
+>>>>>>> UI-v0.1
         """
         unique_colours = self.data.groupby('What?')['Colour'].unique().tolist()
         colours = [list(map(int, item[0].split(','))) for item in unique_colours]

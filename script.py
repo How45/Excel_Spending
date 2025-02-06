@@ -17,7 +17,11 @@ def main():
     for file_name in sorted_statement:
         bank, month, year = extract_name(file_name.split('.')[0])
 
+<<<<<<< HEAD
         statement = ef.FinancialManager(bank, year, month)
+=======
+        statement = ef.FinanacialManager(bank, year, month, 'memo.json')
+>>>>>>> UI-v0.1
         data = statement.clean(file_name)
         if not check_empty_data(data):
             statement.tally_account(data)
