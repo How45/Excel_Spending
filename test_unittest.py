@@ -1,12 +1,11 @@
 """
 .
 """
+import pandas as pd
+import os
 import unittest
 import extract_info as extract
 import extraction_file as ef
-import pandas as pd
-from openpyxl import load_workbook
-import os
 
 class TestExtractionFile(unittest.TestCase):
     """
@@ -121,6 +120,7 @@ class TestExtractionFile(unittest.TestCase):
                 print(f"""❗️ {i} <--- File issue
 Check lines of file: {e}
                     """)
+
 
 if __name__ == '__main__':
     unittest.main()

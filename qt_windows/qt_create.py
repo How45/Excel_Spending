@@ -141,5 +141,6 @@ class QTcreate(QWidget):
         else:
             print("❗️Can't have more then one file")
 
-    def send_data(self) -> None:
-        return (self.statement_files,self.json_files, self.name_file)
+    def send_data(self) -> tuple[list,list,str]:
+        self.data_sent.emit(self.statement_files, self.json_files, self.name_file.text())
+        self.close()
