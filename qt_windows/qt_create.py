@@ -1,31 +1,31 @@
+import os
+import shutil
+
 from PyQt6.QtWidgets import (
     QFormLayout, QVBoxLayout,
     QGroupBox, QLineEdit, QPushButton, QWidget, QFileDialog, QLabel, QDialog
 )
-
 from PyQt6.QtCore import pyqtSignal
 
-import os
-import shutil
 class NewMemo(QDialog):
-            def __init__(self) -> None:
-                super().__init__()
-                self.setWindowTitle("New Memo Name")
-                self.setGeometry(300, 300, 300, 100)
+    def __init__(self) -> None:
+        super().__init__()
+        self.setWindowTitle("New Memo Name")
+        self.setGeometry(300, 300, 300, 100)
 
-                layout = QFormLayout(self)
-                self.setLayout(layout)
+        layout = QFormLayout(self)
+        self.setLayout(layout)
 
-                self.name_memo = QLineEdit()
-                layout.addWidget(self.name_memo)
+        self.name_memo = QLineEdit()
+        layout.addWidget(self.name_memo)
 
-                self.create_memo = QPushButton('Create')
-                layout.addWidget(self.create_memo)
+        self.create_memo = QPushButton('Create')
+        layout.addWidget(self.create_memo)
 
-                self.create_memo.clicked.connect(self.accept)
+        self.create_memo.clicked.connect(self.accept)
 
-            def get_memo_name(self) -> str:
-                return self.name_memo.text()
+    def get_memo_name(self) -> str:
+        return self.name_memo.text()
 
 class QTcreate(QWidget):
     data_sent = pyqtSignal(list, list, str)
@@ -141,5 +141,5 @@ class QTcreate(QWidget):
         else:
             print("❗️Can't have more then one file")
 
-    def finish_button(self) -> None:
+    def send_data(self) -> None:
         return (self.statement_files,self.json_files, self.name_file)

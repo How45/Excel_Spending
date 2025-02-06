@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGroupBox
-from QWindows.QTcreate import QTcreate
-from QWindows.QTload import QTload
-from QWindows.QTupdate import QTupdate
+from QWindows.qt_create import qt_create
+from QWindows.qt_load import qt_load
+from QWindows.qt_update import qt_update
 
 
 import os
@@ -33,7 +33,7 @@ class MainWindow(QWidget):
         buttons[2].clicked.connect(self.open_update)
 
     def open_create(self):
-        self.create_window = QTcreate()
+        self.create_window = qt_create()
         self.create_window.data_sent.connect(self.receive_data)
         self.create_window.show()
 
@@ -45,9 +45,9 @@ class MainWindow(QWidget):
         # File path root
 
     def open_load(self):
-        self.create_window = QTload()
+        self.create_window = qt_load()
         self.create_window.show()
 
     def open_update(self):
-        self.create_window = QTupdate()
+        self.create_window = qt_update()
         self.create_window.show()
