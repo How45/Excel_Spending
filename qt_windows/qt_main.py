@@ -1,4 +1,6 @@
 import os
+import shutil
+import script as run
 from qt_windows.qt_create import QTcreate
 from qt_windows.qt_load import QTload
 from qt_windows.qt_update import QTupdate
@@ -33,24 +35,33 @@ class MainWindow(QWidget):
         buttons[1].clicked.connect(self.open_load)
         buttons[2].clicked.connect(self.open_update)
 
-    def open_create(self):
-        create_window = QTcreate()
-        create_window.data_sent.connect(self.receive_data)
-        create_window.show()
+    def open_create(self) -> None:
+        self.create_window = QTcreate()
+        self.create_window.data_sent.connect(self.receive_data)
+        self.create_window.show()
 
-    def receive_data(self, statement_files, json_files, file_name) -> None:
-        print(os.getcwd())
-        print("Received Data:")
-        print("Statement Files:", statement_files)
-        print("JSON Files:", json_files)
-        print("File Name:", file_name)
-        
-        # File path root
+    def receive_data(self, statement_files: list[str], file_name: str) -> None:
+        print("Sent")
+        current_path: str = os.getcwd()
+        new_directory: str = f"{current_path}\\{file_name}"
+        statement_directory: str = f"{new_directory}\\statements"
+
+        os.mkdir(new_directory)
+        # os.rename(json_files, f"{new_directory}\\{json_files}")
+        shutil.copy2("template_memo.json",f"{new_directory}\\{file_name}_memo.json")
+        shutil.copy2("template_bank.json",f"{new_directory}\\{file_name}_bank.json")
+
+        os.mkdir(statement_directory)
+        for statement in statement_files:
+            split_name = statement.split('statements')[-1]
+            shutil.copy2(statement,f"{statement_directory}{split_name}")
+
+        run.create_file(new_directory)
 
     def open_load(self):
-        create_window = QTload()
-        create_window.show()
+        self.load_window = QTload()
+        self.load_window.show()
 
     def open_update(self):
-        create_window = QTupdate()
-        create_window.show()
+        self.update_window = QTupdate()
+        self.update_window.show()

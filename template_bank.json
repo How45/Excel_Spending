@@ -1,0 +1,8 @@
+{
+    "Bank_Name": {
+        "amount_column": "Amount",
+        "Dates": "Date",
+        "memo_column": "Memo",
+        "remove_memo": [""]
+    }
+}

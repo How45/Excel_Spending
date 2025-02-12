@@ -28,7 +28,7 @@ class NewMemo(QDialog):
         return self.name_memo.text()
 
 class QTcreate(QWidget):
-    data_sent = pyqtSignal(list, list, str)
+    data_sent = pyqtSignal(list, str)
 
     def __init__(self) -> None:
         super().__init__()
@@ -76,10 +76,10 @@ class QTcreate(QWidget):
         inner_layout.addWidget(self.json_file_box)
 
         # Visible outside the file box field
-        add_json_button = QPushButton('Add JSON')
-        inner_layout.addWidget(add_json_button)
-        create_json_button = QPushButton('Create JSON')
-        inner_layout.addWidget(create_json_button)
+        # add_json_button = QPushButton('Add JSON')
+        # inner_layout.addWidget(add_json_button)
+        # create_json_button = QPushButton('Create JSON')
+        # inner_layout.addWidget(create_json_button)
 
         inner_layout.addSpacing(20)
 
@@ -90,8 +90,8 @@ class QTcreate(QWidget):
         inner_layout.addWidget(create_sheet)
 
         add_button.clicked.connect(self.adding_files)
-        add_json_button.clicked.connect(self.adding_json)
-        create_json_button.clicked.connect(self.creating_json)
+        # add_json_button.clicked.connect(self.adding_json)
+        # create_json_button.clicked.connect(self.creating_json)
         create_sheet.clicked.connect(self.send_data)
 
 
@@ -141,6 +141,6 @@ class QTcreate(QWidget):
         else:
             print("❗️Can't have more then one file")
 
-    def send_data(self) -> tuple[list,list,str]:
-        self.data_sent.emit(self.statement_files, self.json_files, self.name_file.text())
+    def send_data(self) -> tuple[list[str],str]:
+        self.data_sent.emit(self.statement_files, self.name_file.text())
         self.close()

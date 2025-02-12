@@ -13,7 +13,7 @@ class TestQT(unittest.TestCase):
         """
         app = QApplication(sys.argv)
         window = MainWindow()
-        window.receive_data("STATEMENTS","JSON", "NAME")
+        window.receive_data(["STATEMENTS"],"JSON", "NAME")
 
 
 if __name__ == '__main__':

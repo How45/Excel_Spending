@@ -14,11 +14,11 @@ class FinancialManager:
     """
     Deals with cleaning of statements and puts them in sheets
     """
-    def __init__(self, bank, year, month, memo_file) -> None:
+    def __init__(self, bank, year, month, memo_file, dir_file) -> None:
         self.bank:str = bank
         self.year:str = year
         self.month:str = month
-        self.output_file:str = f'finance/{year}.xlsx'
+        self.output_file:str = f'{dir_file}/finance/{year}.xlsx'
         self.memo_file = memo_file
 
     def check_existing_bank(self) -> bool:
