@@ -10,13 +10,15 @@ def create_file(dir_file: str) -> None:
     """
     Main file
     """
-    statement: list[str] = [f'{dir_file}/statements/{file}' for file in os.listdir('statements/')]
+
+    statement: list[str] = [file for file in os.listdir(f'{dir_file}\\statements\\')]
+
     sorted_statement: list[str] = sorted(statement,
                               key=lambda x: (int(x.split('_')[-1].split('.')[0]), int(x.split('_')[-2]))
                               )
+
     for file_name in sorted_statement:
         bank, month, year = extract_name(file_name.split('.')[0])
-
         statement = ef.FinancialManager(bank, year, month, 'memo.json', dir_file)
         data = statement.clean(file_name)
         if not check_empty_data(data):

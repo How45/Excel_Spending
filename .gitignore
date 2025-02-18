@@ -162,7 +162,5 @@ cython_debug/
 #.idea/
 
 # personal ignores
-/banks.json
-/memo.json
-/finance
-/statements
+/spreadsheets/personal_finance
+/spreadsheets/test_finance

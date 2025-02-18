@@ -1,11 +1,12 @@
 import os
 import shutil
+
+from PyQt6.QtWidgets import QGroupBox, QPushButton, QVBoxLayout, QWidget
+
 import script as run
 from qt_windows.qt_create import QTcreate
 from qt_windows.qt_load import QTload
 from qt_windows.qt_update import QTupdate
-
-from PyQt6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QGroupBox
 
 
 class MainWindow(QWidget):
@@ -41,9 +42,14 @@ class MainWindow(QWidget):
         self.create_window.show()
 
     def receive_data(self, statement_files: list[str], file_name: str) -> None:
-        print("Sent")
         current_path: str = os.getcwd()
-        new_directory: str = f"{current_path}\\{file_name}"
+        try:
+            if not os.path.isdir(f"{current_path}\\spreadsheet"):
+                raise FileNotFoundError
+        except FileNotFoundError:
+            os.mkdir(f"{current_path}\\spreadsheet")
+
+        new_directory: str = f"{current_path}\\spreadsheet\\{file_name}"
         statement_directory: str = f"{new_directory}\\statements"
 
         os.mkdir(new_directory)

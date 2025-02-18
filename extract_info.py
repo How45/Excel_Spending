@@ -19,7 +19,8 @@ def extract_name(file: str) -> tuple[str, str, str]:
     Extract name of file
     """
     names = file.split('_')
-    bank, month, year = names[0].split('/')[1], names[1], names[2]
+    print(names)
+    bank, month, year = names[0], names[1], names[2]
     return bank, month, year
 
 def privious_year_from_self(year) -> list[str]:
