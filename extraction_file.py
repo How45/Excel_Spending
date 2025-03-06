@@ -9,19 +9,23 @@ from openpyxl.cell.cell import Cell
 import extract_info as extract
 from clean_sheet import clean_cells
 
-STARTING_VALUE: int = 11774.72
+# STARTING_VALUE: int = 11774.72
 class FinancialManager:
     """
     Deals with cleaning of statements and puts them in sheets
     """
-    def __init__(self, bank, year, month, memo_file, dir_file) -> None:
+    def __init__(self, bank, year, month, dir_file, starting_value) -> None:
+        folder_name: str = dir_file.split('\\')[-1]
+
         self.bank:str = bank
         self.year:str = year
         self.month:str = month
-        self.output_file:str = f'{dir_file}/finance/{year}.xlsx'
-        self.memo_file = memo_file
+        self.output_file:str = f'{dir_file}\\finance\\{year}.xlsx'
+        self.memo_file:str = f'{dir_file}\\{folder_name}_memo.json'
+        self.banks_file:str = f'{dir_file}\\{folder_name}_bank.json'
+        self.starting_value:int = starting_value
 
-    def check_existing_bank(self) -> bool:
+    def _check_existing_bank(self) -> bool:
         """
         Checks if there's already the name of the bank in the month of that year
         """
@@ -33,7 +37,7 @@ class FinancialManager:
         """
         Cleans bank statement
         """
-        with open('banks.json', 'r', encoding='utf-8') as f:
+        with open(self.banks_file, 'r', encoding='utf-8') as f:
             bank_operations = json.load(f)
 
         bank_info = bank_operations.get(self.bank)
@@ -66,9 +70,9 @@ class FinancialManager:
                 colours.append(colour)
                 amounts.append(amount[index])
 
-        last_total_cell = self.last_cell_amount()
+        last_total_cell = self._last_cell_amount()
 
-        return self.to_dataframe(amounts, memos, last_total_cell, colours, dates)
+        return self._to_dataframe(amounts, memos, last_total_cell, colours, dates)
 
     def tally_account(self, df: pd.DataFrame) -> None:
         """
@@ -141,15 +145,15 @@ class FinancialManager:
                     break
 
         if closest_month and closest_year:
-                self.update_first_line(closest_month, closest_year)
+                self._update_first_line(closest_month, closest_year)
         else:
             print(f"❌ Nothing to update -> {self.month}/{self.year}")
 
-    def update_first_line(self, page_no: str, closest_year: str) -> None:
+    def _update_first_line(self, page_no: str, closest_year: str) -> None:
         """
         Updates the closest workbook top row, linking to new last row
         """
-        current_total_cell = self.last_cell_amount()
+        current_total_cell = self._last_cell_amount()
 
         workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
         sheet = workbook[page_no]
@@ -169,7 +173,7 @@ class FinancialManager:
         workbook.save(f'finance/{closest_year}.xlsx')
         workbook.close()
 
-    def to_dataframe(self, amounts: list[int], memos: list[str],
+    def _to_dataframe(self, amounts: list[int], memos: list[str],
                   last_total_cell: tuple[Cell|None, str|None, str|None],
                   colours: list[int], dates: list[str]) -> pd.DataFrame:
         """
@@ -188,7 +192,7 @@ class FinancialManager:
         for amount, memo, colour, date in zip(amounts, memos, colours, dates):
             if iteration == 0:
                 # If we are adding a new bank in the same month. Iteration: 1 is skipped
-                function_total, iteration = self.sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
+                function_total, iteration = self._sum_function(last_total_cell[1], last_total_cell[2], iteration, cell_value, cell_coordinate)
 
             elif iteration == 1:
                 cell_coordinate = "E2"
@@ -208,7 +212,7 @@ class FinancialManager:
             iteration += 1
         return df
 
-    def last_cell_amount(self) -> tuple[Cell|None, str|None, str|None]:
+    def _last_cell_amount(self) -> tuple[Cell|None, str|None, str|None]:
         """
         Retrieves the last cell closest to current month/year. First month then year.
         """
@@ -261,7 +265,7 @@ class FinancialManager:
             print('❗️ no privious year has been found')
             return (STARTING_VALUE, None, None)
 
-    def sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
+    def _sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
                      cell_value: int, cell_coordinate: str) -> str:
         """
         Computes the last total for the first row of the sheet.

@@ -43,11 +43,7 @@ class GraphData():
 
     def category_line(self) -> None:
         """
-<<<<<<< HEAD
         Categories expenses as line chart
-=======
-        Categories expensise as line chart
->>>>>>> UI-v0.1
         """
         unique_colours = self.data.groupby('What?')['Colour'].unique().tolist()
         colours = [list(map(int, item[0].split(','))) for item in unique_colours]
@@ -65,17 +61,3 @@ class GraphData():
             plt.xticks([])
         plt.show()
 
-
-def main():
-    """
-    Main function
-    """
-    year = '2023'
-    df = pd.read_excel(f'finance/{year}.xlsx')
-    gd = GraphData(df)
-    # gd.pie_expenses()
-    # gd.line_total()
-    gd.category_line()
-
-if __name__ == "__main__":
-    main()

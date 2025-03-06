@@ -3,7 +3,7 @@ import shutil
 
 from PyQt6.QtWidgets import (
     QFormLayout, QVBoxLayout,
-    QGroupBox, QLineEdit, QPushButton, QWidget, QFileDialog, QLabel, QDialog
+    QGroupBox, QLineEdit, QPushButton, QWidget, QFileDialog, QLabel, QDialog, QSpinBox
 )
 from PyQt6.QtCore import pyqtSignal
 
@@ -83,8 +83,18 @@ class QTcreate(QWidget):
 
         inner_layout.addSpacing(20)
 
+        self.starting_amount_label = QLabel('Set starting amount:')
+        inner_layout.addWidget(self.starting_amount_label)
+        self.start_amount = QSpinBox()
+        inner_layout.addWidget(self.start_amount)
+
+        inner_layout.addSpacing(10)
+
+
         self.name_file = QLineEdit('Excelsheet Name')
         inner_layout.addWidget(self.name_file)
+
+        inner_layout.addSpacing(20)
 
         create_sheet = QPushButton('Create')
         inner_layout.addWidget(create_sheet)
@@ -141,6 +151,6 @@ class QTcreate(QWidget):
         else:
             print("❗️Can't have more then one file")
 
-    def send_data(self) -> tuple[list[str],str]:
-        self.data_sent.emit(self.statement_files, self.name_file.text())
+    def send_data(self) -> tuple[list[str],str, int]:
+        self.data_sent.emit(self.statement_files, self.name_file.text(), self.start_amount.value())
         self.close()

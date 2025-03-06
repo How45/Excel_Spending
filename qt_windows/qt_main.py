@@ -41,15 +41,15 @@ class MainWindow(QWidget):
         self.create_window.data_sent.connect(self.receive_data)
         self.create_window.show()
 
-    def receive_data(self, statement_files: list[str], file_name: str) -> None:
+    def receive_data(self, statement_files: list[str], file_name: str, start_amount: int) -> None:
         current_path: str = os.getcwd()
         try:
-            if not os.path.isdir(f"{current_path}\\spreadsheet"):
+            if not os.path.isdir(f"{current_path}\\spreadsheets"):
                 raise FileNotFoundError
         except FileNotFoundError:
-            os.mkdir(f"{current_path}\\spreadsheet")
+            os.mkdir(f"{current_path}\\spreadsheets")
 
-        new_directory: str = f"{current_path}\\spreadsheet\\{file_name}"
+        new_directory: str = f"{current_path}\\spreadsheets\\{file_name}"
         statement_directory: str = f"{new_directory}\\statements"
 
         os.mkdir(new_directory)
@@ -62,7 +62,7 @@ class MainWindow(QWidget):
             split_name = statement.split('statements')[-1]
             shutil.copy2(statement,f"{statement_directory}{split_name}")
 
-        run.create_file(new_directory)
+        run.create(new_directory, start_amount)
 
     def open_load(self):
         self.load_window = QTload()
