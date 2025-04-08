@@ -55,6 +55,7 @@ class MainWindow(QWidget):
         statement_directory: str = f"{new_directory}\\statements"
 
         os.mkdir(new_directory)
+        os.mkdir(f'{current_path}\\spreadsheets\\{file_name}\\finance')
         # os.rename(json_files, f"{new_directory}\\{json_files}")
         shutil.copy2("template_memo.json",f"{new_directory}\\{file_name}_memo.json")
         shutil.copy2("template_bank.json",f"{new_directory}\\{file_name}_bank.json")
@@ -64,10 +65,9 @@ class MainWindow(QWidget):
             split_name = statement.split('statements')[-1]
             shutil.copy2(statement,f"{statement_directory}{split_name}")
 
-        self.edit_json = QTJsonEdits()
+        self.edit_json = QTJsonEdits(file_name)
+        self.edit_json.finished.connect(lambda: run.create(new_directory, start_amount))
         self.edit_json.show()
-
-        run.create(new_directory, start_amount)
 
     def open_load(self):
         self.load_window = QTload()

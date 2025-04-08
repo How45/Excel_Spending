@@ -9,7 +9,6 @@ from openpyxl.cell.cell import Cell
 import extract_info as extract
 from clean_sheet import clean_cells
 
-# STARTING_VALUE: int = 11774.72
 class FinancialManager:
     """
     Deals with cleaning of statements and puts them in sheets
@@ -17,6 +16,7 @@ class FinancialManager:
     def __init__(self, bank, year, month, dir_file, starting_value) -> None:
         folder_name: str = dir_file.split('\\')[-1]
 
+        self.dir_file = dir_file
         self.bank:str = bank
         self.year:str = year
         self.month:str = month
@@ -87,7 +87,7 @@ class FinancialManager:
             sheets = workbook.sheetnames
 
             if self.month in sheets:
-                if not self.check_existing_bank():
+                if not self._check_existing_bank():
                     sheet = workbook[self.month]
                     last_row = sheet.max_row
 
@@ -114,7 +114,7 @@ class FinancialManager:
         Reformats sheets/workbooks infront of it like referencing the last_cell_amount
         """
 
-        fiance_workbooks: list[str] = os.listdir(path='finance/')
+        fiance_workbooks: list[str] = os.listdir(path=f'{self.dir_file}/finance/')
         years_ahead: list[str] = [files.split('.')[0] for files in fiance_workbooks if int(files.split('.')[0]) >= int(self.year)]
         closest_month: str = None
         closest_year: str = None
@@ -122,7 +122,7 @@ class FinancialManager:
         if self.month == "12":
             try:
                 closest_year = years_ahead[1]
-                workbook = load_workbook(f'finance/{closest_year}.xlsx')
+                workbook = load_workbook(f'{self.dir_file}/finance/{closest_year}.xlsx')
                 workbook_sheets: list[str] = workbook.sheetnames
                 workbook.close()
 
@@ -135,7 +135,7 @@ class FinancialManager:
 
         else:
             for pointer_year in years_ahead:
-                workbook = load_workbook(f'finance/{pointer_year}.xlsx')
+                workbook = load_workbook(f'{self.dir_file}/finance/{pointer_year}.xlsx')
                 workbook_sheets = workbook.sheetnames
                 workbook.close()
 
@@ -155,14 +155,14 @@ class FinancialManager:
         """
         current_total_cell = self._last_cell_amount()
 
-        workbook = load_workbook(filename=f'finance/{closest_year}.xlsx')
+        workbook = load_workbook(filename=f'{self.dir_file}/finance/{closest_year}.xlsx')
         sheet = workbook[page_no]
 
         # MIGHT NOT NEED THIS V
         if not current_total_cell[1]:
-            function_total = f"=SUM(D2,{STARTING_VALUE})"
+            function_total = f"=SUM(D2,{self.starting_value})"
 
-        elif current_total_cell[1] == f'finance/{closest_year}.xlsx':
+        elif current_total_cell[1] == f'{self.dir_file}/finance/{closest_year}.xlsx':
             function_total = f"=SUM(D2,'{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
         else:
@@ -170,7 +170,7 @@ class FinancialManager:
             function_total = f"=SUM(D2,'file:///[{path_year}]{current_total_cell[2]}'!{current_total_cell[0].coordinate})"
 
         sheet.cell(row=2,column=5).value = function_total
-        workbook.save(f'finance/{closest_year}.xlsx')
+        workbook.save(f'{self.dir_file}/finance/{closest_year}.xlsx')
         workbook.close()
 
     def _to_dataframe(self, amounts: list[int], memos: list[str],
@@ -217,7 +217,7 @@ class FinancialManager:
         Retrieves the last cell closest to current month/year. First month then year.
         """
         # If the year before exits
-        year_before_dir: str = f'finance/{extract.privious_year_from_self(self.year)}.xlsx'
+        year_before_dir: str = f'{self.dir_file}/finance/{extract.privious_year_from_self(self.year, self.dir_file)}.xlsx'
 
         # This year
         if os.path.exists(self.output_file):
@@ -239,7 +239,7 @@ class FinancialManager:
                 sheet = workbook[privious_month]
             else:
                 print('❗️ no privious month found')
-                return (STARTING_VALUE, None, None)
+                return (self.starting_value, None, None)
 
             last_cell = extract.last_row(sheet)
             workbook.close()
@@ -263,7 +263,7 @@ class FinancialManager:
         # None
         else:
             print('❗️ no privious year has been found')
-            return (STARTING_VALUE, None, None)
+            return (self.starting_value, None, None)
 
     def _sum_function(self, last_year: str|None, last_month: str|None, iteration: int,
                      cell_value: int, cell_coordinate: str) -> str:
@@ -271,23 +271,22 @@ class FinancialManager:
         Computes the last total for the first row of the sheet.
 
         The function determines how the first row should derive the last total, either by:
-        - Continuing from the same month
-        - Fetching the total from another sheet
-        - Fetching the total from another workbook
+            - Continuing from the same month
+            - Fetching the total from another sheet
+            - Fetching the total from another workbook
 
         Parameters:
-        ----------
-        last_year : str|None
-            The privious year gotten from the last_total_cell or None
-        last_month : str
-            The privious month gotten from the last_total_cell
-        iteration : int
-            The row number for the current Income/Spending being processed.
-            Value will be +2 as excel starts on base 1 and we are skipping the header row
-        cell_value : int
-            A starting value or 0 if no value is provided.
-        cell_coordinate : str
-            The cell coordinate indicating where the total is located (e.g. 'E2', 'E36').
+            last_year : str|None
+                The privious year gotten from the last_total_cell or None
+            last_month : str
+                The privious month gotten from the last_total_cell
+            iteration : int
+                The row number for the current Income/Spending being processed.
+                Value will be +2 as excel starts on base 1 and we are skipping the header row
+            cell_value : int
+                A starting value or 0 if no value is provided.
+            cell_coordinate : str
+                The cell coordinate indicating where the total is located (e.g. 'E2', 'E36').
         """
         # First time creating a workbook ever
         if last_year is None:

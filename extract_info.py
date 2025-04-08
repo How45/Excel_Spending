@@ -23,13 +23,13 @@ def extract_name(file: str) -> tuple[str, str, str]:
     bank, month, year = names[0], names[1], names[2]
     return bank, month, year
 
-def privious_year_from_self(year) -> list[str]:
+def privious_year_from_self(year: str, dir: str) -> str:
     """
     Gets last known year from starting year
     """
-    xlsx_files = os.listdir('finance/')
+    xlsx_files = os.listdir(f'{dir}\\finance\\')
 
-    closes_year = None
+    closest_year = None
     for file in xlsx_files:
         file_year = int(file.split('.')[0])
         if file_year == int(year)-1:
@@ -39,9 +39,9 @@ def privious_year_from_self(year) -> list[str]:
             if closest_year is None or file_year > closest_year:
                 closest_year = file_year
 
-    if closes_year is None:
+    if closest_year is None:
         return 0
-    return closes_year
+    return closest_year
 
 def category_memos(memo_json: dict, key: str) -> tuple[str, str]:
     """
