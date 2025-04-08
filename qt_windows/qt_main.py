@@ -64,8 +64,8 @@ class MainWindow(QWidget):
             split_name = statement.split('statements')[-1]
             shutil.copy2(statement,f"{statement_directory}{split_name}")
 
-        # self.edit_json = QTJsonEdits()
-        # self.edit_json.show()
+        self.edit_json = QTJsonEdits()
+        self.edit_json.show()
 
         run.create(new_directory, start_amount)
 

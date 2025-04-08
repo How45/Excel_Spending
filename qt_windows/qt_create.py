@@ -3,7 +3,7 @@ import shutil
 
 from PyQt6.QtWidgets import (
     QFormLayout, QVBoxLayout,
-    QGroupBox, QLineEdit, QPushButton, QWidget, QFileDialog, QLabel, QDialog, QSpinBox
+    QGroupBox, QLineEdit, QPushButton, QWidget, QFileDialog, QLabel, QDialog, QDoubleSpinBox
 )
 from PyQt6.QtCore import pyqtSignal
 
@@ -48,8 +48,10 @@ class QTcreate(QWidget):
         inner_layout.setSpacing(5)
 
         # Text naming file field
-        self.name_folder = QLineEdit('Folder Name')
-        inner_layout.addWidget(self.name_folder)
+        # self.name_folder = QLineEdit('Folder Name')
+        # inner_layout.addWidget(self.name_folder)
+        self.name_file = QLineEdit('Excelsheet Name')
+        inner_layout.addWidget(self.name_file)
 
 
 # / ----------------------------------------- /
@@ -85,14 +87,9 @@ class QTcreate(QWidget):
 
         self.starting_amount_label = QLabel('Set starting amount:')
         inner_layout.addWidget(self.starting_amount_label)
-        self.start_amount = QSpinBox()
+        self.start_amount = QDoubleSpinBox()
+        self.start_amount.setMaximum(1000000)
         inner_layout.addWidget(self.start_amount)
-
-        inner_layout.addSpacing(10)
-
-
-        self.name_file = QLineEdit('Excelsheet Name')
-        inner_layout.addWidget(self.name_file)
 
         inner_layout.addSpacing(20)
 
@@ -106,17 +103,19 @@ class QTcreate(QWidget):
 
 
     def adding_files(self) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(self, "Select CSV File", "", "CSV Files (*.csv)")
-        if file_path and file_path not in self.statement_files:
-            self.statement_files.append(file_path)
+        file_paths, _ = QFileDialog.getOpenFileNames(self, "Select CSV File", "", "CSV Files (*.csv)")
 
-            file_name = os.path.basename(file_path)
+        for file_path in file_paths:
+            if file_path and file_path not in self.statement_files:
+                self.statement_files.append(file_path)
 
-            file_label = QLabel(file_name)
-            self.list_files.addRow(file_label)
+                file_name = os.path.basename(file_path)
 
-        elif file_path in self.statement_files:
-            print("❗️ Already added")
+                file_label = QLabel(file_name)
+                self.list_files.addRow(file_label)
+
+            elif file_path in self.statement_files:
+                print("❗️ Already added")
 
     def adding_json(self) -> None:
         if len(self.json_list_files) < 1:
