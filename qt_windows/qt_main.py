@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import QGroupBox, QPushButton, QVBoxLayout, QWidget
 
 import script as run
 from qt_windows.qt_create import QTcreate
+from qt_windows.qt_json_edits import QTJsonEdits
 from qt_windows.qt_load import QTload
 from qt_windows.qt_update import QTupdate
 
@@ -44,6 +45,7 @@ class MainWindow(QWidget):
     def receive_data(self, statement_files: list[str], file_name: str, start_amount: int) -> None:
         current_path: str = os.getcwd()
         try:
+            print(not os.path.isdir(f"{current_path}\\spreadsheets"))
             if not os.path.isdir(f"{current_path}\\spreadsheets"):
                 raise FileNotFoundError
         except FileNotFoundError:
@@ -61,6 +63,9 @@ class MainWindow(QWidget):
         for statement in statement_files:
             split_name = statement.split('statements')[-1]
             shutil.copy2(statement,f"{statement_directory}{split_name}")
+
+        # self.edit_json = QTJsonEdits()
+        # self.edit_json.show()
 
         run.create(new_directory, start_amount)
 

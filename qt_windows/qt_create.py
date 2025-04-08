@@ -28,7 +28,7 @@ class NewMemo(QDialog):
         return self.name_memo.text()
 
 class QTcreate(QWidget):
-    data_sent = pyqtSignal(list, str)
+    data_sent = pyqtSignal(list, str, int)
 
     def __init__(self) -> None:
         super().__init__()
